@@ -16,7 +16,6 @@ const links = [
   { label: "Launchpad", href: "/launchpad" },
   { label: "Stake", href: "/stake" },
   { label: "Studio", href: "/studio" },
-  { label: "Create", href: "/create" },
 ];
 
 const socials = [

@@ -489,6 +489,29 @@ export default function StudioPage() {
   const totalRarity = selectedLayer?.traits.reduce((s, t) => s + t.rarity, 0) || 0;
   const canGenerate = layers.length > 0 && layers.every((l) => l.traits.length > 0);
 
+  // Studio is the first step of the launch flow, so require a wallet up front.
+  // Everything a user does here (uploads, generations) binds to the wallet
+  // that was connected at draft time.
+  if (!wallet.publicKey) {
+    return (
+      <div className="pt-[72px] min-h-screen bg-[#EDE3BC]">
+        <div className="container-main py-[clamp(40px,5vw,64px)]">
+          <div className="max-w-[560px]">
+            <h1 className="text-[clamp(32px,4vw,48px)] font-black text-[#2F2B28] leading-[1] mb-3">
+              Art Studio
+            </h1>
+            <p className="text-[clamp(15px,1.2vw,17px)] text-[#826D62] mb-6">
+              Connect your wallet to start a new collection. You&apos;ll sign the launch transactions from this wallet, and any draft you leave behind is saved under it.
+            </p>
+            <p className="text-[12px] text-[#8A8480]">
+              Use the Connect Wallet button in the top right.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="pt-[72px] min-h-screen bg-[#EDE3BC]">
       <div className="container-main py-[clamp(32px,4vw,56px)]">
