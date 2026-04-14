@@ -10,8 +10,10 @@ type Tab = "minting" | "finished";
 function parseActivePhase(col: LaunchedCollection): LaunchedCollection["phases"][number] | undefined {
   const now = Date.now();
   for (const p of col.phases) {
-    if (!p.startDate) continue;
-    const start = new Date(`${p.startDate}T${p.startTime || "00:00"}`).getTime();
+    // Empty startDate = active immediately; empty endDate = never expires.
+    const start = p.startDate
+      ? new Date(`${p.startDate}T${p.startTime || "00:00"}`).getTime()
+      : -Infinity;
     const end = p.endDate
       ? new Date(`${p.endDate}T${p.endTime || "23:59"}`).getTime()
       : Infinity;

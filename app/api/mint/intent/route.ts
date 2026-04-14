@@ -28,12 +28,13 @@ function nowMs(): number {
   return Date.now();
 }
 
-function parsePhaseStart(p: { startDate: string; startTime: string }): number | null {
-  if (!p.startDate) return null;
+// Empty startDate = active immediately; empty endDate = never expires.
+function parsePhaseStart(p: { startDate: string; startTime: string }): number {
+  if (!p.startDate) return -Infinity;
   return new Date(`${p.startDate}T${p.startTime || "00:00"}`).getTime();
 }
-function parsePhaseEnd(p: { endDate: string; endTime: string }): number | null {
-  if (!p.endDate) return null;
+function parsePhaseEnd(p: { endDate: string; endTime: string }): number {
+  if (!p.endDate) return Infinity;
   return new Date(`${p.endDate}T${p.endTime || "23:59"}`).getTime();
 }
 
@@ -79,9 +80,8 @@ export async function POST(req: Request) {
     const activePhase = col.phases.find((p) => {
       const start = parsePhaseStart(p);
       const end = parsePhaseEnd(p);
-      if (start === null) return false;
       if (now < start) return false;
-      if (end !== null && now >= end) return false;
+      if (now >= end) return false;
       return true;
     });
     if (!activePhase) {

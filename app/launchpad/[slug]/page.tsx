@@ -8,8 +8,12 @@ import type { LaunchedCollection, LaunchedPhase } from "@/lib/launched";
 import { sendPaymentForIntent, accountExplorerUrl } from "@/lib/metaplex";
 
 function phaseRuntimeStatus(p: LaunchedPhase, nowMs: number): "active" | "upcoming" | "ended" {
-  if (!p.startDate) return "upcoming";
-  const start = new Date(`${p.startDate}T${p.startTime || "00:00"}`).getTime();
+  // Unscheduled phases: missing startDate = active immediately, missing endDate
+  // = never expires. This matches the UI where creators can launch without
+  // pinning a schedule and rely on admin controls or sold-out to close mint.
+  const start = p.startDate
+    ? new Date(`${p.startDate}T${p.startTime || "00:00"}`).getTime()
+    : -Infinity;
   const end = p.endDate
     ? new Date(`${p.endDate}T${p.endTime || "23:59"}`).getTime()
     : Infinity;
