@@ -3,6 +3,7 @@
 import { useState, useRef, DragEvent, ChangeEvent } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
+import { useWallet } from "@solana/wallet-adapter-react";
 
 type Trait = {
   id: string;
@@ -63,6 +64,7 @@ function pickWeighted(traits: Trait[]): Trait | undefined {
 
 export default function StudioPage() {
   const router = useRouter();
+  const wallet = useWallet();
   const [collectionName, setCollectionName] = useState("");
   const [tagline, setTagline] = useState("");
   const [description, setDescription] = useState("");
@@ -438,6 +440,10 @@ export default function StudioPage() {
 
   // Save collection data to localStorage and navigate to /create
   const confirmLaunch = () => {
+    if (!wallet.publicKey) {
+      alert("Connect your wallet before launching.");
+      return;
+    }
     const payload = {
       name: collectionName,
       tagline,
@@ -447,6 +453,9 @@ export default function StudioPage() {
       oneOfOneCount: generated.filter((g) => g.isOneOfOne).length,
       layerCount: layers.length,
       traitCount: totalTraits,
+      // Tie this draft to the wallet that set it up so it doesn't leak to
+      // other wallets in the same browser.
+      draftOwner: wallet.publicKey.toString(),
       createdAt: new Date().toISOString(),
     };
     if (typeof window !== "undefined") {

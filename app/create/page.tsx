@@ -45,6 +45,7 @@ type CollectionInfo = {
   layerCount: number;
   traitCount: number;
   createdAt: string;
+  draftOwner?: string;
 };
 
 type StoredTrait = { layerName: string; traitName: string; imageUrl?: string };
@@ -91,18 +92,43 @@ export default function CreatePage() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     const raw = localStorage.getItem("rugworld:collection");
-    if (raw) {
-      try {
-        setInfo(JSON.parse(raw));
-      } catch {}
+    if (!raw) {
+      setInfo(null);
+      setStoredNFTs([]);
+      return;
     }
+    let parsed: CollectionInfo | null = null;
+    try {
+      parsed = JSON.parse(raw) as CollectionInfo;
+    } catch {
+      setInfo(null);
+      return;
+    }
+
+    // Only show the draft to the wallet that created it. If the connected
+    // wallet differs (or nothing is connected yet), hide it — next wallet
+    // will see an empty slate.
+    const currentWallet = wallet.publicKey?.toString();
+    if (parsed.draftOwner && currentWallet && parsed.draftOwner !== currentWallet) {
+      setInfo(null);
+      setStoredNFTs([]);
+      return;
+    }
+    if (parsed.draftOwner && !currentWallet) {
+      // No wallet yet — don't show someone else's draft on an anonymous view
+      setInfo(null);
+      setStoredNFTs([]);
+      return;
+    }
+
+    setInfo(parsed);
     const rawGen = localStorage.getItem("rugworld:generated");
     if (rawGen) {
       try {
         setStoredNFTs(JSON.parse(rawGen));
       } catch {}
     }
-  }, []);
+  }, [wallet.publicKey]);
 
   const addPhase = () => {
     setPhases([
@@ -362,6 +388,14 @@ export default function CreatePage() {
         throw new Error(`backend registration failed: ${err.error || launchRes.status}`);
       }
 
+      // Clear the Studio draft now that this collection is live on-chain +
+      // indexed in the backend. Subsequent visits to /create (by any wallet)
+      // won't see leftover draft data.
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("rugworld:collection");
+        localStorage.removeItem("rugworld:generated");
+      }
+
       setLaunchState({
         stage: "done",
         collectionAddress: result.collectionAddress,
@@ -460,7 +494,9 @@ export default function CreatePage() {
               Launch Flow
             </h1>
             <p className="text-[clamp(15px,1.2vw,17px)] text-[#826D62] mb-6">
-              Looks like you haven&apos;t set up your collection yet. Head to the Studio to add your collection details, upload traits, and generate your NFTs first.
+              {wallet.publicKey
+                ? "No draft for this wallet yet. Head to the Studio to add your collection details, upload traits, and generate your NFTs first."
+                : "Connect your wallet to continue. Drafts are saved per wallet, so switching accounts shows a clean slate."}
             </p>
             <Link href="/studio" className="inline-flex px-6 py-3 text-[14px] font-bold text-[#EDE3BC] bg-[#A64C4F] hover:bg-[#8a3d40] transition-colors">
               Open Studio
@@ -499,6 +535,20 @@ export default function CreatePage() {
           <p className="text-[clamp(15px,1.2vw,17px)] text-[#826D62]">
             Final step. Set your mint phases with timing, pre-mint to the founder wallet if you want, and confirm the launch fee.
           </p>
+          <button
+            onClick={() => {
+              if (!confirm("Discard this draft and go back to Studio?")) return;
+              if (typeof window !== "undefined") {
+                localStorage.removeItem("rugworld:collection");
+                localStorage.removeItem("rugworld:generated");
+              }
+              setInfo(null);
+              setStoredNFTs([]);
+            }}
+            className="mt-4 text-[12px] text-[#826D62] hover:text-[#A64C4F] transition-colors"
+          >
+            Discard draft and start over
+          </button>
         </motion.div>
 
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-8 lg:gap-12">
