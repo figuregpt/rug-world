@@ -1,0 +1,115 @@
+// Rug.World backend schema.
+// SQLite for dev. Swap datasource to postgresql for production.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model LaunchedCollection {
+  id                 String   @id @default(cuid())
+  collectionAddress  String   @unique
+  collectionUri      String
+  creatorWallet      String
+  txSignature        String
+  network            String   // "devnet" | "mainnet-beta"
+
+  slug               String   @unique
+  name               String
+  tagline            String?
+  description        String?
+  supply             Int
+  preMintCount       Int      @default(0)
+  royaltyFee         Int      @default(10)
+  holderShare        Int      @default(100)
+  teamShare          Int      @default(0)
+  minted             Int      @default(0)
+  status             String   @default("minting")
+
+  launchedAt         DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  phases             Phase[]
+  assets             CollectionAsset[]
+  mintIntents        MintIntent[]
+
+  @@index([status])
+}
+
+model Phase {
+  id             String              @id @default(cuid())
+  collectionId   String
+  collection     LaunchedCollection  @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  orderIndex     Int
+  name           String
+  price          String              // SOL, stored as string to avoid float drift
+  supply         String              // "" or "0" means uses remaining
+  maxPerWallet   String              // "0" means unlimited
+  startDate      String
+  startTime      String
+  endDate        String
+  endTime        String
+
+  @@index([collectionId, orderIndex])
+}
+
+// The metadata pool. One row per NFT in the collection.
+// On launch: client uploads metadata to Arweave, posts URIs here.
+// On mint: server atomically picks the next unclaimed asset and mints it.
+model CollectionAsset {
+  id            String              @id @default(cuid())
+  collectionId  String
+  collection    LaunchedCollection  @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  tokenIndex    Int                 // 1-based index within the collection
+  metadataUri   String
+  imageUri      String?
+  name          String
+  attributes    String?             // JSON-encoded array of {trait_type, value}
+  isOneOfOne    Boolean             @default(false)
+
+  // Mint state
+  claimed       Boolean             @default(false)
+  claimedBy     String?             // buyer wallet pubkey
+  claimedAt     DateTime?
+  assetAddress  String?             // on-chain address after mint succeeds
+  mintSignature String?
+
+  @@unique([collectionId, tokenIndex])
+  @@index([collectionId, claimed])
+}
+
+// A pending mint request. Protects against:
+//   - random SOL senders claiming mints (memo required)
+//   - replay attacks (nonce + paymentSignature uniqueness)
+//   - rapid click bugs (status state machine)
+//   - amount tampering (expectedLamports calculated server-side)
+model MintIntent {
+  id                 String              @id @default(cuid())
+  collectionId       String
+  collection         LaunchedCollection  @relation(fields: [collectionId], references: [id])
+  buyerWallet        String
+  qty                Int
+  priceSol           String              // phase price at intent-creation time
+  expectedLamports   BigInt              // mint price + 2.5% fee + upload buffer
+  creatorRecipient   String              // creator wallet (receives mint price - fee)
+  treasuryRecipient  String              // Rug.World treasury (receives fee + buffer)
+  phaseName          String?
+  nonce              String              @unique
+  memo               String              @unique // intent id baked into memo text; server matches against tx logs
+
+  status             String              @default("pending") // pending | paying | paid | minting | completed | failed | expired
+
+  paymentSignature   String?             @unique
+  assetAddresses     String?             // JSON array of minted asset addresses
+
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  expiresAt          DateTime
+
+  @@index([buyerWallet, status])
+  @@index([status, expiresAt])
+}

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
-import { listLaunched, type LaunchedCollection } from "@/lib/launched";
+import type { LaunchedCollection } from "@/lib/launched";
 
 type Tab = "minting" | "finished";
 
@@ -135,7 +135,66 @@ export default function LaunchpadPage() {
   const [collections, setCollections] = useState<LaunchedCollection[]>([]);
 
   useEffect(() => {
-    setCollections(listLaunched());
+    fetch("/api/launches")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.collections) {
+          // API returns DB rows which have `phases` nested, normalize field names
+          const normalized: LaunchedCollection[] = data.collections.map(
+            (c: {
+              collectionAddress: string;
+              collectionUri: string;
+              creatorWallet: string;
+              txSignature: string;
+              network: string;
+              slug: string;
+              name: string;
+              tagline?: string;
+              description?: string;
+              supply: number;
+              preMintCount: number;
+              royaltyFee: number;
+              holderShare: number;
+              teamShare: number;
+              minted: number;
+              status: string;
+              launchedAt: string;
+              phases: Array<{
+                name: string;
+                price: string;
+                supply: string;
+                maxPerWallet: string;
+                startDate: string;
+                startTime: string;
+                endDate: string;
+                endTime: string;
+              }>;
+            }) => ({
+              collectionAddress: c.collectionAddress,
+              collectionUri: c.collectionUri,
+              creatorWallet: c.creatorWallet,
+              txSignature: c.txSignature,
+              network: c.network as "devnet" | "mainnet-beta",
+              cluster: c.network as "devnet" | "mainnet-beta",
+              slug: c.slug,
+              name: c.name,
+              tagline: c.tagline || "",
+              description: c.description || "",
+              supply: c.supply,
+              preMintCount: c.preMintCount,
+              royaltyFee: c.royaltyFee,
+              holderShare: c.holderShare,
+              teamShare: c.teamShare,
+              minted: c.minted,
+              phases: c.phases,
+              status: c.status as "minting" | "finished" | "abandoned",
+              launchedAt: c.launchedAt,
+            })
+          );
+          setCollections(normalized);
+        }
+      })
+      .catch((e) => console.error("Failed to load launches", e));
   }, []);
 
   const filtered = collections.filter((c) => c.status === tab);

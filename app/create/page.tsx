@@ -19,7 +19,7 @@ import {
   uploadAsset,
   uploadCollectionMetadata,
 } from "@/lib/uploader";
-import { saveLaunched, slugify } from "@/lib/launched";
+import { slugify } from "@/lib/launched";
 
 type Phase = {
   id: string;
@@ -202,17 +202,23 @@ export default function CreatePage() {
         externalUrl: "https://rug.world",
       });
 
-      // 3. Pre-upload assets we'll need for pre-mint. Upload all for faster
-      //    launchpad readiness — lazy-mint later reads these URIs.
-      //    For devnet testing we upload only the ones we'll pre-mint to save
-      //    Irys cost; the rest can be uploaded on demand when buyers mint.
-      const preMintList = storedNFTs.slice(0, preMintNum);
-      const preMintUris: string[] = [];
+      // 3. Upload metadata + image for EVERY NFT. This populates the backend
+      //    pool so buyers can lazy-mint against pre-pinned Arweave URIs later.
+      //    For a 5000-piece collection this takes time, but it's predictable
+      //    cost (creator pays Irys once) rather than per-mint latency.
+      const assetManifest: Array<{
+        tokenId: number;
+        metadataUri: string;
+        imageUri: string;
+        name: string;
+        attributes: Array<{ trait_type: string; value: string }>;
+        isOneOfOne: boolean;
+      }> = [];
 
-      if (preMintList.length > 0) {
-        setLaunchState({ stage: "uploading-assets", done: 0, total: preMintList.length });
-        for (let i = 0; i < preMintList.length; i++) {
-          const nft = preMintList[i];
+      if (storedNFTs.length > 0) {
+        setLaunchState({ stage: "uploading-assets", done: 0, total: storedNFTs.length });
+        for (let i = 0; i < storedNFTs.length; i++) {
+          const nft = storedNFTs[i];
           let imageBytes: Uint8Array;
           if (nft.isOneOfOne && nft.customImage) {
             imageBytes = await flattenLayersToPng([nft.customImage]);
@@ -231,7 +237,7 @@ export default function CreatePage() {
             value: t.traitName,
           }));
 
-          const { metadataUri } = await uploadAsset(umi, {
+          const { imageUri, metadataUri } = await uploadAsset(umi, {
             imageBytes,
             name: nft.customName || `${info.name} #${nft.tokenId}`,
             description: info.description,
@@ -239,14 +245,26 @@ export default function CreatePage() {
             externalUrl: "https://rug.world",
           });
 
-          preMintUris.push(metadataUri);
+          assetManifest.push({
+            tokenId: nft.tokenId,
+            metadataUri,
+            imageUri,
+            name: nft.customName || `${info.name} #${nft.tokenId}`,
+            attributes,
+            isOneOfOne: nft.isOneOfOne,
+          });
+
           setLaunchState({
             stage: "uploading-assets",
             done: i + 1,
-            total: preMintList.length,
+            total: storedNFTs.length,
           });
         }
       }
+
+      // Slice out the first N for the pre-mint. Rest stay in the pool.
+      const preMintUris = assetManifest.slice(0, preMintNum).map((a) => a.metadataUri);
+      const preMintList = assetManifest.slice(0, preMintNum);
 
       // 4. Create the collection on-chain (launch fee + Metaplex Core collection)
       setLaunchState({
@@ -263,6 +281,7 @@ export default function CreatePage() {
       });
 
       // 5. Bulk pre-mint to creator (4 NFTs per transaction)
+      const preMintAssetAddresses: string[] = [];
       let mintsMinted = 0;
       if (preMintList.length > 0) {
         const totalBatches = Math.ceil(preMintList.length / BULK_BATCH_SIZE);
@@ -273,10 +292,10 @@ export default function CreatePage() {
           minted: 0,
           total: preMintList.length,
         });
-        await bulkPreMint(wallet, {
+        const results = await bulkPreMint(wallet, {
           collectionAddress: result.collectionAddress,
           items: preMintList.map((nft, i) => ({
-            name: nft.customName || `${info.name} #${nft.tokenId}`,
+            name: nft.name,
             uri: preMintUris[i],
           })),
           onBatch: ({ batchIndex, totalBatches: tb, minted, total }) => {
@@ -289,18 +308,21 @@ export default function CreatePage() {
             });
           },
         });
+        for (const r of results) preMintAssetAddresses.push(r.assetAddress);
         mintsMinted = preMintList.length;
       }
 
-      // Persist the launched collection so the launchpad + stake pages can see it.
-      try {
-        saveLaunched({
+      // 6. POST the full manifest to the backend so the mint pool is live.
+      const buyerWallet = wallet.publicKey.toString();
+      const launchRes = await fetch("/api/launches", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
           collectionAddress: result.collectionAddress,
           collectionUri,
-          creatorWallet: wallet.publicKey.toString(),
+          creatorWallet: buyerWallet,
           txSignature: result.signature,
           network: "devnet",
-          cluster: "devnet",
           slug: slugify(info.name),
           name: info.name,
           tagline: info.tagline,
@@ -310,7 +332,6 @@ export default function CreatePage() {
           royaltyFee: 10,
           holderShare: 100,
           teamShare: 0,
-          minted: mintsMinted,
           phases: phases.map((p) => ({
             name: p.name,
             price: p.price,
@@ -321,11 +342,24 @@ export default function CreatePage() {
             endDate: p.endDate,
             endTime: p.endTime,
           })),
-          status: "minting",
-          launchedAt: new Date().toISOString(),
-        });
-      } catch (persistErr) {
-        console.warn("Failed to persist launched collection", persistErr);
+          assets: assetManifest.map((a, idx) => ({
+            tokenIndex: a.tokenId,
+            metadataUri: a.metadataUri,
+            imageUri: a.imageUri,
+            name: a.name,
+            attributes: a.attributes,
+            isOneOfOne: a.isOneOfOne,
+            // mark pre-mints as claimed so they don't show up in the mint pool
+            claimed: idx < preMintList.length,
+            claimedBy: idx < preMintList.length ? buyerWallet : undefined,
+            assetAddress: idx < preMintList.length ? preMintAssetAddresses[idx] : undefined,
+          })),
+        }),
+      });
+      if (!launchRes.ok) {
+        const err = await launchRes.json().catch(() => ({}));
+        console.error("Failed to register launch in backend", err);
+        throw new Error(`backend registration failed: ${err.error || launchRes.status}`);
       }
 
       setLaunchState({

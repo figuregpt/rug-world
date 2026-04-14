@@ -3,7 +3,7 @@
 import { useEffect, useState, use } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { getLaunched, updateLaunched, type LaunchedCollection } from "@/lib/launched";
+import type { LaunchedCollection } from "@/lib/launched";
 
 export default function AdminPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params);
@@ -23,24 +23,52 @@ export default function AdminPage({ params }: { params: Promise<{ slug: string }
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    const fetched = getLaunched(slug) || null;
-    setCol(fetched);
-    if (fetched) {
-      setSupply(fetched.supply);
-      setPhases(
-        fetched.phases.map((p) => ({
-          name: p.name,
-          price: p.price,
-          status: "upcoming",
-          startDate: p.startDate,
-          startTime: p.startTime || "00:00",
-          endDate: p.endDate,
-          endTime: p.endTime || "23:59",
-          supply: p.supply,
-          maxPerWallet: p.maxPerWallet,
-        }))
-      );
-    }
+    fetch(`/api/launches/${slug}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (!data?.collection) {
+          setCol(null);
+          return;
+        }
+        const c = data.collection;
+        const fetched: LaunchedCollection = {
+          collectionAddress: c.collectionAddress,
+          collectionUri: c.collectionUri,
+          creatorWallet: c.creatorWallet,
+          txSignature: c.txSignature,
+          network: c.network,
+          cluster: c.network,
+          slug: c.slug,
+          name: c.name,
+          tagline: c.tagline || "",
+          description: c.description || "",
+          supply: c.supply,
+          preMintCount: c.preMintCount,
+          royaltyFee: c.royaltyFee,
+          holderShare: c.holderShare,
+          teamShare: c.teamShare,
+          minted: c.minted,
+          phases: c.phases,
+          status: c.status,
+          launchedAt: c.launchedAt,
+        };
+        setCol(fetched);
+        setSupply(fetched.supply);
+        setPhases(
+          fetched.phases.map((p) => ({
+            name: p.name,
+            price: p.price,
+            status: "upcoming",
+            startDate: p.startDate,
+            startTime: p.startTime || "00:00",
+            endDate: p.endDate,
+            endTime: p.endTime || "23:59",
+            supply: p.supply,
+            maxPerWallet: p.maxPerWallet,
+          }))
+        );
+      })
+      .catch(() => setCol(null));
   }, [slug]);
 
   if (col === undefined) {
@@ -75,23 +103,37 @@ export default function AdminPage({ params }: { params: Promise<{ slug: string }
     setPhases(phases.map((p, idx) => (idx === i ? { ...p, [field]: value } : p)));
   };
 
-  const saveChanges = () => {
+  const saveChanges = async () => {
     if (!col) return;
-    updateLaunched(col.collectionAddress, {
-      supply,
-      phases: phases.map((p) => ({
-        name: p.name,
-        price: p.price,
-        supply: p.supply,
-        maxPerWallet: p.maxPerWallet,
-        startDate: p.startDate,
-        startTime: p.startTime,
-        endDate: p.endDate,
-        endTime: p.endTime,
-      })),
-    });
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2500);
+    try {
+      const res = await fetch(`/api/launches/${col.slug}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          supply,
+          phases: phases.map((p) => ({
+            name: p.name,
+            price: p.price,
+            supply: p.supply,
+            maxPerWallet: p.maxPerWallet,
+            startDate: p.startDate,
+            startTime: p.startTime,
+            endDate: p.endDate,
+            endTime: p.endTime,
+          })),
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert(`Failed: ${err.error || res.status}`);
+        return;
+      }
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2500);
+    } catch (err) {
+      console.error(err);
+      alert("Failed to save. See console.");
+    }
   };
 
   const label = "block text-[11px] font-mono text-[#826D62] uppercase tracking-wider mb-1";

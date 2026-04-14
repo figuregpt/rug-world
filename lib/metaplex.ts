@@ -381,64 +381,68 @@ export async function fetchCollectionState(
   return await fetchCollection(umi, publicKey(address));
 }
 
+const MEMO_PROGRAM_ID = "MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr";
+
 /**
- * Buyer-side: send a single payment transaction that transfers:
- *   - (priceSol * qty * (1 - marketplaceFee)) SOL to the creator wallet
- *   - (priceSol * qty * marketplaceFee) SOL to the Rug.World treasury
+ * Buyer-side: send a single payment transaction based on an intent from
+ * `/api/mint/intent`. The tx contains:
+ *   - transferSol(creatorRecipient, creatorAmountSol)
+ *   - transferSol(treasuryRecipient, treasuryAmountSol)
+ *   - memo instruction with the intent's memo text (binds payment to intent)
  *
- * Returns the confirmed tx signature (base58 for explorer links + server
- * verification via /api/mint).
- *
- * The buyer signs exactly ONE transaction. The server then mints the NFTs.
+ * Returns the confirmed tx signature (base58) for `/api/mint/execute`.
  */
-export async function sendBuyerPayment(
+export async function sendPaymentForIntent(
   wallet: WalletContextState,
-  params: {
-    creatorWallet: string;
-    priceSol: number;
-    qty: number;
-    extraSolPerMint?: number; // upload/gas buffer, keeps a little headroom for server costs
+  intent: {
+    memo: string;
+    creatorRecipient: string;
+    creatorAmountSol: number;
+    treasuryRecipient: string;
+    treasuryAmountSol: number;
   }
-): Promise<{ signature: string; totalSol: number }> {
+): Promise<{ signature: string }> {
   if (!wallet.publicKey) throw new Error("Wallet not connected");
   const umi = buildUmi(wallet);
 
-  const qty = Math.max(1, params.qty);
-  const basePriceTotal = params.priceSol * qty;
-  const marketplaceCut = (basePriceTotal * MARKETPLACE_FEE_BPS) / 10000;
-  const toCreator = basePriceTotal - marketplaceCut;
-  const buffer = (params.extraSolPerMint ?? 0.004) * qty; // ~0.004 SOL per mint for server upload/gas
-
   let builder = transactionBuilder();
-  if (toCreator > 0) {
+
+  if (intent.creatorAmountSol > 0) {
     builder = builder.add(
       transferSol(umi, {
-        destination: publicKey(params.creatorWallet),
-        amount: sol(toCreator),
+        destination: publicKey(intent.creatorRecipient),
+        amount: sol(intent.creatorAmountSol),
       })
     );
   }
-  if (marketplaceCut + buffer > 0) {
+  if (intent.treasuryAmountSol > 0) {
     builder = builder.add(
       transferSol(umi, {
-        destination: publicKey(RUG_WORLD_TREASURY),
-        amount: sol(marketplaceCut + buffer),
+        destination: publicKey(intent.treasuryRecipient),
+        amount: sol(intent.treasuryAmountSol),
       })
     );
   }
+
+  // Add memo instruction - plain UTF-8 bytes, no accounts, Memo program id
+  builder = builder.add({
+    instruction: {
+      programId: publicKey(MEMO_PROGRAM_ID),
+      keys: [],
+      data: new TextEncoder().encode(intent.memo),
+    },
+    signers: [],
+    bytesCreatedOnChain: 0,
+  });
 
   const result = await builder.sendAndConfirm(umi, {
     confirm: { commitment: "confirmed" },
   });
 
-  // Convert Umi's signature (Uint8Array) to base58 for downstream verification
   const { base58 } = await import("@metaplex-foundation/umi/serializers");
   const sig = base58.deserialize(result.signature)[0];
 
-  return {
-    signature: sig,
-    totalSol: +(toCreator + marketplaceCut + buffer).toFixed(6),
-  };
+  return { signature: sig };
 }
 
 // Helper to convert a signed tx signature back to the base58 form used by explorers

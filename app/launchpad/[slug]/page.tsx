@@ -4,13 +4,8 @@ import { useEffect, useState, use } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { useWallet } from "@solana/wallet-adapter-react";
-import {
-  getLaunched,
-  updateLaunched,
-  type LaunchedCollection,
-  type LaunchedPhase,
-} from "@/lib/launched";
-import { sendBuyerPayment, accountExplorerUrl, MARKETPLACE_FEE_BPS } from "@/lib/metaplex";
+import type { LaunchedCollection, LaunchedPhase } from "@/lib/launched";
+import { sendPaymentForIntent, accountExplorerUrl } from "@/lib/metaplex";
 
 function phaseRuntimeStatus(p: LaunchedPhase, nowMs: number): "active" | "upcoming" | "ended" {
   if (!p.startDate) return "upcoming";
@@ -126,7 +121,8 @@ function PhaseRow({ phase, index, nowMs }: { phase: LaunchedPhase; index: number
 
 type MintState =
   | { stage: "idle" }
-  | { stage: "paying" }
+  | { stage: "intent" }
+  | { stage: "paying"; totalSol: number }
   | { stage: "server-minting"; step: string }
   | { stage: "done"; assetAddresses: string[] }
   | { stage: "error"; message: string };
@@ -140,7 +136,37 @@ export default function MintPage({ params }: { params: Promise<{ slug: string }>
   const [nowMs, setNowMs] = useState(() => Date.now());
 
   useEffect(() => {
-    setCol(getLaunched(slug) || null);
+    fetch(`/api/launches/${slug}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (!data?.collection) {
+          setCol(null);
+          return;
+        }
+        const c = data.collection;
+        setCol({
+          collectionAddress: c.collectionAddress,
+          collectionUri: c.collectionUri,
+          creatorWallet: c.creatorWallet,
+          txSignature: c.txSignature,
+          network: c.network,
+          cluster: c.network,
+          slug: c.slug,
+          name: c.name,
+          tagline: c.tagline || "",
+          description: c.description || "",
+          supply: c.supply,
+          preMintCount: c.preMintCount,
+          royaltyFee: c.royaltyFee,
+          holderShare: c.holderShare,
+          teamShare: c.teamShare,
+          minted: c.minted,
+          phases: c.phases,
+          status: c.status,
+          launchedAt: c.launchedAt,
+        });
+      })
+      .catch(() => setCol(null));
   }, [slug]);
 
   // Tick every second so countdowns update live
@@ -207,51 +233,59 @@ export default function MintPage({ params }: { params: Promise<{ slug: string }>
     }
 
     try {
-      // 1. Buyer signs ONE payment tx (mint price + 2.5% + upload buffer)
-      setMintState({ stage: "paying" });
-      const payment = await sendBuyerPayment(wallet, {
-        creatorWallet: col.creatorWallet,
-        priceSol: activePrice,
-        qty: mintQty,
-      });
-
-      // 2. Server mints the NFTs to the buyer
-      setMintState({ stage: "server-minting", step: "Uploading metadata and minting..." });
-      const items = Array.from({ length: mintQty }, (_, i) => {
-        const tokenIndex = col.minted + i + 1;
-        return {
-          name: `${col.name} #${tokenIndex}`,
-          uri: col.collectionUri, // TODO: per-asset pre-uploaded metadata from backend manifest
-        };
-      });
-
-      const res = await fetch("/api/mint", {
+      // 1. Ask the server to create a mint intent (computes expected amount,
+      //    returns a nonce + memo to bind our payment to this intent).
+      setMintState({ stage: "intent" });
+      const intentRes = await fetch("/api/mint/intent", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          collectionAddress: col.collectionAddress,
-          buyerAddress: wallet.publicKey.toString(),
-          paymentSignature: payment.signature,
-          expectedSol: payment.totalSol,
-          freezeAuthority: col.creatorWallet,
-          items,
+          slug,
+          buyerWallet: wallet.publicKey.toString(),
+          qty: mintQty,
         }),
       });
-      const data = await res.json();
-      if (!res.ok || !data.ok) {
-        throw new Error(data.error || `API error ${res.status}`);
+      const intent = await intentRes.json();
+      if (!intentRes.ok) {
+        throw new Error(intent.error || `intent error ${intentRes.status}`);
       }
 
-      const addresses: string[] = data.results.map(
-        (r: { assetAddress: string }) => r.assetAddress
-      );
+      // 2. Buyer signs ONE payment tx (transfers + memo).
+      setMintState({ stage: "paying", totalSol: intent.totalSol });
+      const payment = await sendPaymentForIntent(wallet, {
+        memo: intent.memo,
+        creatorRecipient: intent.creatorRecipient,
+        creatorAmountSol: intent.creatorAmountSol,
+        treasuryRecipient: intent.treasuryRecipient,
+        treasuryAmountSol: intent.treasuryAmountSol,
+      });
+
+      // 3. Server verifies + mints.
+      setMintState({
+        stage: "server-minting",
+        step: "Verifying payment and minting...",
+      });
+      const execRes = await fetch("/api/mint/execute", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          intentId: intent.intentId,
+          paymentSignature: payment.signature,
+        }),
+      });
+      const exec = await execRes.json();
+      if (!execRes.ok || !exec.ok) {
+        throw new Error(exec.error || `execute error ${execRes.status}`);
+      }
+
+      const addresses: string[] = exec.assetAddresses;
 
       const newMinted = col.minted + mintQty;
-      updateLaunched(col.collectionAddress, {
+      setCol({
+        ...col,
         minted: newMinted,
-        status: newMinted >= col.supply ? "finished" : "minting",
+        status: newMinted >= col.supply ? "finished" : col.status,
       });
-      setCol({ ...col, minted: newMinted });
       setMintState({ stage: "done", assetAddresses: addresses });
     } catch (err) {
       console.error(err);
@@ -261,7 +295,9 @@ export default function MintPage({ params }: { params: Promise<{ slug: string }>
   };
 
   const isMintBusy =
-    mintState.stage === "paying" || mintState.stage === "server-minting";
+    mintState.stage === "intent" ||
+    mintState.stage === "paying" ||
+    mintState.stage === "server-minting";
 
   return (
     <div className="pt-[72px] min-h-screen">
@@ -403,8 +439,10 @@ export default function MintPage({ params }: { params: Promise<{ slug: string }>
                   disabled={!wallet.connected || isMintBusy}
                   className="w-full py-4 text-[15px] font-bold text-[#EDE3BC] bg-[#A64C4F] hover:bg-[#8a3d40] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
-                  {mintState.stage === "paying"
-                    ? "Waiting for your payment..."
+                  {mintState.stage === "intent"
+                    ? "Preparing intent..."
+                    : mintState.stage === "paying"
+                    ? `Waiting for payment (${mintState.totalSol.toFixed(4)} SOL)...`
                     : mintState.stage === "server-minting"
                     ? "Server minting NFTs..."
                     : `Mint ${mintQty} · ${(activePrice * mintQty).toFixed(2)} SOL`}
