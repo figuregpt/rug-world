@@ -17,6 +17,32 @@ import {
   ruleSet,
   type CollectionV1,
 } from "@metaplex-foundation/mpl-core";
+
+/**
+ * fetchCollection often races against RPC propagation right after a launch
+ * tx is "confirmed". The collection account exists on-chain but the RPC node
+ * hasn't indexed it yet, so the SDK throws AccountNotFoundError. Retry with
+ * a short exponential backoff before giving up.
+ */
+async function fetchCollectionWithRetry(
+  umi: Umi,
+  address: ReturnType<typeof publicKey>,
+  attempts = 8
+): Promise<CollectionV1> {
+  let lastErr: unknown;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      return await fetchCollection(umi, address);
+    } catch (err) {
+      lastErr = err;
+      const delayMs = 500 * Math.pow(1.5, i); // 500ms, 750, 1125, ... up to ~6.4s
+      await new Promise((r) => setTimeout(r, delayMs));
+    }
+  }
+  throw lastErr instanceof Error
+    ? lastErr
+    : new Error("fetchCollection exhausted retries");
+}
 import { transferSol } from "@metaplex-foundation/mpl-toolbox";
 import type { WalletContextState } from "@solana/wallet-adapter-react";
 
@@ -160,7 +186,7 @@ export async function preMintOne(
   if (!wallet.publicKey) throw new Error("Wallet not connected");
   const umi = buildUmi(wallet);
 
-  const collection = await fetchCollection(
+  const collection = await fetchCollectionWithRetry(
     umi,
     publicKey(params.collectionAddress)
   );
@@ -214,7 +240,7 @@ export async function bulkPreMint(
   if (params.items.length === 0) return [];
   const umi = buildUmi(wallet);
 
-  const collection = await fetchCollection(
+  const collection = await fetchCollectionWithRetry(
     umi,
     publicKey(params.collectionAddress)
   );
@@ -289,7 +315,7 @@ export async function lazyMintToBuyer(
   if (!wallet.publicKey) throw new Error("Wallet not connected");
   const umi = buildUmi(wallet);
 
-  const collection = await fetchCollection(
+  const collection = await fetchCollectionWithRetry(
     umi,
     publicKey(params.collectionAddress)
   );

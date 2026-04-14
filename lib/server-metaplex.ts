@@ -157,6 +157,25 @@ export async function uploadAssetServer(params: {
   return { imageUri, metadataUri };
 }
 
+async function fetchCollectionWithRetryServer(
+  umi: Umi,
+  address: ReturnType<typeof publicKey>,
+  attempts = 8
+) {
+  let lastErr: unknown;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      return await fetchCollection(umi, address);
+    } catch (err) {
+      lastErr = err;
+      await new Promise((r) => setTimeout(r, 500 * Math.pow(1.5, i)));
+    }
+  }
+  throw lastErr instanceof Error
+    ? lastErr
+    : new Error("fetchCollection exhausted retries");
+}
+
 /**
  * Mint a single NFT under `collectionAddress` to the buyer's wallet.
  * Server signs. FreezeDelegate attached with the configured freeze authority.
@@ -169,7 +188,7 @@ export async function serverMintToBuyer(params: {
   freezeAuthority: string;
 }): Promise<{ assetAddress: string; signature: string }> {
   const umi = getServerUmi();
-  const collection = await fetchCollection(
+  const collection = await fetchCollectionWithRetryServer(
     umi,
     publicKey(params.collectionAddress)
   );
