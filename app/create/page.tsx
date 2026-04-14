@@ -9,17 +9,11 @@ import {
   launchCollection,
   bulkPreMint,
   accountExplorerUrl,
-  buildUmi,
   LAUNCH_FEE_SOL,
   BULK_BATCH_SIZE,
   OPERATOR_PUBKEY,
 } from "@/lib/metaplex";
-import {
-  withIrys,
-  flattenLayersToPng,
-  uploadAsset,
-  uploadCollectionMetadata,
-} from "@/lib/uploader";
+import { flattenLayersToPng } from "@/lib/uploader";
 import { slugify } from "@/lib/launched";
 
 type Phase = {
@@ -66,6 +60,45 @@ const MARKETPLACE_FEE = 2.5; // % from every sale
 
 function makeId() {
   return Math.random().toString(36).slice(2, 10);
+}
+
+function bytesToBase64(bytes: Uint8Array): string {
+  let binary = "";
+  const chunk = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunk) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
+  }
+  return btoa(binary);
+}
+
+/** A tiny placeholder PNG for the collection cover when we don't have
+ *  a dedicated cover image. Renders the initials on a canvas. */
+async function createPlaceholderCoverPng(name: string): Promise<string> {
+  if (typeof window === "undefined") return "";
+  const canvas = document.createElement("canvas");
+  canvas.width = 512;
+  canvas.height = 512;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return "";
+  ctx.fillStyle = "#2F2B28";
+  ctx.fillRect(0, 0, 512, 512);
+  ctx.fillStyle = "#A64C4F";
+  ctx.font = "bold 200px system-ui, -apple-system, Satoshi, sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  const initials = name
+    .split(" ")
+    .map((w) => w[0] || "")
+    .join("")
+    .slice(0, 3)
+    .toUpperCase() || "RW";
+  ctx.fillText(initials, 256, 256);
+  const blob = await new Promise<Blob | null>((resolve) =>
+    canvas.toBlob((b) => resolve(b), "image/png")
+  );
+  if (!blob) return "";
+  const buf = await blob.arrayBuffer();
+  return bytesToBase64(new Uint8Array(buf));
 }
 
 type LaunchState =
@@ -266,24 +299,38 @@ export default function CreatePage() {
     }
 
     try {
-      // 1. Set up Umi with Irys uploader
-      const umi = withIrys(buildUmi(wallet));
-
-      // 2. Upload collection metadata to Arweave
+      // 1. Upload collection-level metadata via the backend (operator wallet
+      //    pays Irys, no creator signature needed).
       setLaunchState({
         stage: "uploading-collection",
-        step: "Uploading collection metadata to Arweave...",
+        step: "Uploading collection metadata...",
       });
-      const collectionUri = await uploadCollectionMetadata(umi, {
-        name: info.name,
-        description: info.description,
-        externalUrl: "https://rug.world",
+      const collectionUploadRes = await fetch("/api/launches/upload-batch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          items: [
+            {
+              name: info.name,
+              description: info.description,
+              imageBase64: await createPlaceholderCoverPng(info.name),
+            },
+          ],
+        }),
       });
+      const collectionUploadJson = await collectionUploadRes.json();
+      if (!collectionUploadRes.ok || !collectionUploadJson.results?.[0]) {
+        throw new Error(
+          collectionUploadJson.error || "Failed to upload collection metadata"
+        );
+      }
+      const collectionUri = collectionUploadJson.results[0].metadataUri;
 
-      // 3. Upload metadata + image for EVERY NFT. This populates the backend
-      //    pool so buyers can lazy-mint against pre-pinned Arweave URIs later.
-      //    For a 5000-piece collection this takes time, but it's predictable
-      //    cost (creator pays Irys once) rather than per-mint latency.
+      // 2. Flatten + batch-upload every NFT via the backend. The creator
+      //    signs ZERO upload transactions; the operator wallet handles all
+      //    Irys uploads from server-side. We chunk requests to stay under
+      //    the JSON body limit.
+      const UPLOAD_BATCH_SIZE = 5;
       const assetManifest: Array<{
         tokenId: number;
         metadataUri: string;
@@ -295,46 +342,69 @@ export default function CreatePage() {
 
       if (storedNFTs.length > 0) {
         setLaunchState({ stage: "uploading-assets", done: 0, total: storedNFTs.length });
-        for (let i = 0; i < storedNFTs.length; i++) {
-          const nft = storedNFTs[i];
-          let imageBytes: Uint8Array;
-          if (nft.isOneOfOne && nft.customImage) {
-            imageBytes = await flattenLayersToPng([nft.customImage]);
-          } else {
-            const urls = nft.traits.map((t) => t.imageUrl).filter((u): u is string => !!u);
-            if (urls.length === 0) {
-              throw new Error(
-                `NFT #${nft.tokenId} has no trait images. Re-open Studio in this tab to reload blob URLs.`
-              );
-            }
-            imageBytes = await flattenLayersToPng(urls);
+
+        for (let i = 0; i < storedNFTs.length; i += UPLOAD_BATCH_SIZE) {
+          const slice = storedNFTs.slice(i, i + UPLOAD_BATCH_SIZE);
+
+          // Flatten each NFT's layers locally (canvas, no signing).
+          const items = await Promise.all(
+            slice.map(async (nft) => {
+              let imageBytes: Uint8Array;
+              if (nft.isOneOfOne && nft.customImage) {
+                imageBytes = await flattenLayersToPng([nft.customImage]);
+              } else {
+                const urls = nft.traits.map((t) => t.imageUrl).filter((u): u is string => !!u);
+                if (urls.length === 0) {
+                  throw new Error(
+                    `NFT #${nft.tokenId} has no trait images. Re-open Studio in this tab to reload blob URLs.`
+                  );
+                }
+                imageBytes = await flattenLayersToPng(urls);
+              }
+              const attributes = nft.traits.map((t) => ({
+                trait_type: t.layerName,
+                value: t.traitName,
+              }));
+              return {
+                _nft: nft,
+                _attributes: attributes,
+                payload: {
+                  name: nft.customName || `${info.name} #${nft.tokenId}`,
+                  description: info.description,
+                  attributes,
+                  imageBase64: bytesToBase64(imageBytes),
+                },
+              };
+            })
+          );
+
+          const res = await fetch("/api/launches/upload-batch", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ items: items.map((x) => x.payload) }),
+          });
+          const json = await res.json();
+          if (!res.ok || !json.results) {
+            throw new Error(json.error || `upload batch failed at #${i}`);
           }
 
-          const attributes = nft.traits.map((t) => ({
-            trait_type: t.layerName,
-            value: t.traitName,
-          }));
-
-          const { imageUri, metadataUri } = await uploadAsset(umi, {
-            imageBytes,
-            name: nft.customName || `${info.name} #${nft.tokenId}`,
-            description: info.description,
-            attributes,
-            externalUrl: "https://rug.world",
-          });
-
-          assetManifest.push({
-            tokenId: nft.tokenId,
-            metadataUri,
-            imageUri,
-            name: nft.customName || `${info.name} #${nft.tokenId}`,
-            attributes,
-            isOneOfOne: nft.isOneOfOne,
-          });
+          json.results.forEach(
+            (r: { imageUri: string; metadataUri: string }, idx: number) => {
+              const ctx = items[idx];
+              assetManifest.push({
+                tokenId: ctx._nft.tokenId,
+                metadataUri: r.metadataUri,
+                imageUri: r.imageUri,
+                name: ctx.payload.name,
+                attributes: ctx._attributes,
+                isOneOfOne: ctx._nft.isOneOfOne,
+              });
+            }
+          );
 
           setLaunchState({
             stage: "uploading-assets",
-            done: i + 1,
+            done: Math.min(i + UPLOAD_BATCH_SIZE, storedNFTs.length),
             total: storedNFTs.length,
           });
         }
@@ -469,65 +539,8 @@ export default function CreatePage() {
     launchState.stage === "uploading-collection" ||
     launchState.stage === "uploading-assets";
 
-  // Test mint state (runs on already-launched collection)
-  const [testMintState, setTestMintState] = useState<
-    { stage: "idle" } | { stage: "minting" } | { stage: "done"; assetAddress: string } | { stage: "error"; message: string }
-  >({ stage: "idle" });
-
-  const handleTestMint = async () => {
-    if (launchState.stage !== "done" || !info || !wallet.publicKey) return;
-    try {
-      setTestMintState({ stage: "minting" });
-
-      // Pick a non-pre-minted NFT for the test
-      const availableNft = storedNFTs[preMintNum] || storedNFTs[0];
-      if (!availableNft) throw new Error("No generated NFTs found");
-
-      const umi = withIrys(buildUmi(wallet));
-
-      // Flatten + upload the image for this specific NFT
-      let imageBytes: Uint8Array;
-      if (availableNft.isOneOfOne && availableNft.customImage) {
-        imageBytes = await flattenLayersToPng([availableNft.customImage]);
-      } else {
-        const urls = availableNft.traits
-          .map((t) => t.imageUrl)
-          .filter((u): u is string => !!u);
-        if (urls.length === 0) {
-          throw new Error(
-            "No trait images available. Re-open Studio in this tab to reload blob URLs."
-          );
-        }
-        imageBytes = await flattenLayersToPng(urls);
-      }
-
-      const { metadataUri } = await uploadAsset(umi, {
-        imageBytes,
-        name: availableNft.customName || `${info.name} #${availableNft.tokenId}`,
-        description: info.description,
-        attributes: availableNft.traits.map((t) => ({
-          trait_type: t.layerName,
-          value: t.traitName,
-        })),
-        externalUrl: "https://rug.world",
-      });
-
-      const firstPhase = phases.find((p) => p.name) || phases[0];
-      const priceSol = parseFloat(firstPhase?.price || "0") || 0;
-
-      const result = await lazyMintToBuyer(wallet, {
-        collectionAddress: launchState.collectionAddress,
-        creatorWallet: wallet.publicKey.toString(), // creator == buyer for self-test
-        priceSol,
-        name: availableNft.customName || `${info.name} #${availableNft.tokenId}`,
-        uri: metadataUri,
-      });
-      setTestMintState({ stage: "done", assetAddress: result.assetAddress });
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Unknown error";
-      setTestMintState({ stage: "error", message });
-    }
-  };
+  // Test-mint UI removed: the real buyer-facing mint flow lives on
+  // /launchpad/[slug] now and goes through /api/mint/intent + /api/mint/execute.
 
   const input = "w-full px-3 py-2 bg-[#EDE3BC] border border-[#C4B99A] text-[14px] text-[#2F2B28] placeholder:text-[#8A8480] focus:border-[#A64C4F] outline-none transition-colors";
   const label = "block text-[11px] font-mono text-[#826D62] uppercase tracking-wider mb-1";
@@ -1125,38 +1138,7 @@ export default function CreatePage() {
                           >
                             View collection →
                           </a>
-                          <button
-                            onClick={handleTestMint}
-                            disabled={testMintState.stage === "minting"}
-                            className="ml-auto px-4 py-1.5 text-[12px] font-bold text-[#EDE3BC] bg-[#2F2B28] hover:bg-[#1d1a18] disabled:opacity-50 transition-colors"
-                          >
-                            {testMintState.stage === "minting" ? "Minting..." : "Test Lazy Mint"}
-                          </button>
                         </div>
-
-                        {testMintState.stage === "done" && (
-                          <div className="pt-3 border-t border-[#A64C4F]/20">
-                            <p className="text-[12px] text-[#2F2B28] mb-1">
-                              <span className="font-bold">Test mint successful.</span> NFT is in your wallet, frozen.
-                            </p>
-                            <a
-                              href={accountExplorerUrl(testMintState.assetAddress)}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-[11px] font-mono text-[#A64C4F] hover:underline"
-                            >
-                              {testMintState.assetAddress.slice(0, 12)}...{testMintState.assetAddress.slice(-6)}
-                            </a>
-                          </div>
-                        )}
-
-                        {testMintState.stage === "error" && (
-                          <div className="pt-3 border-t border-[#A64C4F]/20">
-                            <p className="text-[12px] text-[#A64C4F]">
-                              Mint failed: {testMintState.message}
-                            </p>
-                          </div>
-                        )}
                       </div>
                     )}
 
