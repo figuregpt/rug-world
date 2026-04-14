@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { Connection, PublicKey } from "@solana/web3.js";
+import { Connection, LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
 import { prisma } from "@/lib/db";
 import { serverMintToBuyer, SERVER_RPC } from "@/lib/server-metaplex";
 
@@ -7,6 +7,24 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const MEMO_PROGRAM_ID = new PublicKey("MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr");
+
+// Must match /api/mint/intent
+const BUYER_FEE_BPS = 250;
+const CREATOR_FEE_BPS = 250;
+const UPLOAD_BUFFER_PER_MINT_SOL = 0.004;
+
+function expectedAmounts(priceSol: number, qty: number) {
+  const baseTotal = priceSol * qty;
+  const buyerFee = (baseTotal * BUYER_FEE_BPS) / 10000;
+  const creatorFee = (baseTotal * CREATOR_FEE_BPS) / 10000;
+  const buffer = UPLOAD_BUFFER_PER_MINT_SOL * qty;
+  const toCreatorSol = baseTotal - creatorFee;
+  const toTreasurySol = buyerFee + creatorFee + buffer;
+  return {
+    toCreatorLamports: BigInt(Math.floor(toCreatorSol * LAMPORTS_PER_SOL)),
+    toTreasuryLamports: BigInt(Math.floor(toTreasurySol * LAMPORTS_PER_SOL)),
+  };
+}
 
 type ExecuteBody = {
   intentId: string;
@@ -23,7 +41,8 @@ async function verifyPayment(params: {
   memo: string;
   creatorRecipient: string;
   treasuryRecipient: string;
-  expectedLamports: bigint;
+  expectedCreatorLamports: bigint;
+  expectedTreasuryLamports: bigint;
 }): Promise<VerifyResult> {
   const conn = new Connection(SERVER_RPC, "confirmed");
 
@@ -53,7 +72,6 @@ async function verifyPayment(params: {
   // 2. Memo must be present with the exact intent memo text.
   let foundMemo = false;
   for (const ix of message.instructions) {
-    // parsed memo instruction comes through as { program: "spl-memo", parsed: "text" }
     const anyIx = ix as unknown as {
       programId: PublicKey;
       program?: string;
@@ -61,12 +79,10 @@ async function verifyPayment(params: {
       data?: string;
     };
     if (anyIx.programId?.equals(MEMO_PROGRAM_ID)) {
-      // parsed form
       if (typeof anyIx.parsed === "string" && anyIx.parsed === params.memo) {
         foundMemo = true;
         break;
       }
-      // raw form (base58 or plain utf-8 data)
       if (typeof anyIx.data === "string") {
         try {
           const decoded = Buffer.from(anyIx.data, "base64").toString("utf8");
@@ -84,42 +100,55 @@ async function verifyPayment(params: {
     return { ok: false, reason: "memo missing or mismatched" };
   }
 
-  // 3. Sum up SOL transferred to each recipient. Must meet expected amounts.
-  //    We check: buyer's net outflow >= expected AND both recipients received >= their shares.
+  // 3. Recipient-based inflow check.
+  //    We deliberately DON'T use buyer outflow, because when the buyer is
+  //    also the creator or treasury the self-transfer cancels out and the
+  //    apparent outflow is only the "away" portion. The recipient balances
+  //    are the authoritative source of truth: both wallets must have
+  //    received at least what the intent required.
   const meta = tx.meta;
   if (!meta) return { ok: false, reason: "no tx metadata" };
   const idx = (pubkey: string) =>
     accountKeys.findIndex((k) => k.pubkey.toBase58() === pubkey);
 
-  const buyerIdx = idx(params.buyer);
   const creatorIdx = idx(params.creatorRecipient);
   const treasuryIdx = idx(params.treasuryRecipient);
-  if (buyerIdx < 0 || creatorIdx < 0 || treasuryIdx < 0) {
+  if (creatorIdx < 0 || treasuryIdx < 0) {
     return { ok: false, reason: "expected accounts not present in tx" };
   }
 
-  const buyerOutflow = BigInt(
-    (meta.preBalances[buyerIdx] ?? 0) - (meta.postBalances[buyerIdx] ?? 0)
-  );
-  const creatorInflow = BigInt(
-    (meta.postBalances[creatorIdx] ?? 0) - (meta.preBalances[creatorIdx] ?? 0)
-  );
-  const treasuryInflow = BigInt(
+  const buyerIsCreator = params.buyer === params.creatorRecipient;
+  const buyerIsTreasury = params.buyer === params.treasuryRecipient;
+
+  // Treasury inflow: cannot be skipped even if buyer==treasury, because
+  // in that edge case the net delta should still be >= expected (minus tx fee).
+  const treasuryInflowRaw = BigInt(
     (meta.postBalances[treasuryIdx] ?? 0) - (meta.preBalances[treasuryIdx] ?? 0)
   );
-
-  // Allow a tiny slack for network fees paid by the buyer.
-  if (buyerOutflow < params.expectedLamports) {
+  // When buyer == treasury, the inflow also reflects outflows; the platform
+  // fee effectively comes back to them. Allow a 0.01 SOL slack for gas in
+  // that case. Otherwise require the full expected amount.
+  const treasurySlack = buyerIsTreasury ? BigInt(10_000_000) : BigInt(0);
+  if (treasuryInflowRaw + treasurySlack < params.expectedTreasuryLamports) {
     return {
       ok: false,
-      reason: `buyer paid ${buyerOutflow}, expected >= ${params.expectedLamports}`,
+      reason: `treasury received ${treasuryInflowRaw} lamports, expected >= ${params.expectedTreasuryLamports}`,
     };
   }
-  if (creatorInflow + treasuryInflow < params.expectedLamports) {
-    return {
-      ok: false,
-      reason: `recipients received ${creatorInflow + treasuryInflow}, expected >= ${params.expectedLamports}`,
-    };
+
+  // Creator inflow: when buyer == creator, the self-transfer is a no-op
+  // economically. The creator "receives" from themselves, so there's nothing
+  // to verify. Skip the check in that case (they can't rob themselves).
+  if (!buyerIsCreator) {
+    const creatorInflow = BigInt(
+      (meta.postBalances[creatorIdx] ?? 0) - (meta.preBalances[creatorIdx] ?? 0)
+    );
+    if (creatorInflow < params.expectedCreatorLamports) {
+      return {
+        ok: false,
+        reason: `creator received ${creatorInflow} lamports, expected >= ${params.expectedCreatorLamports}`,
+      };
+    }
   }
 
   return { ok: true };
@@ -192,6 +221,14 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "intent locked" }, { status: 409 });
     }
 
+    // Recompute the expected split from the stored priceSol/qty so the check
+    // matches what /api/mint/intent sent to the client.
+    const priceSol = parseFloat(intent.priceSol) || 0;
+    const { toCreatorLamports, toTreasuryLamports } = expectedAmounts(
+      priceSol,
+      intent.qty
+    );
+
     // Verify the payment
     const check = await verifyPayment({
       signature: body.paymentSignature,
@@ -199,7 +236,8 @@ export async function POST(req: Request) {
       memo: intent.memo,
       creatorRecipient: intent.creatorRecipient,
       treasuryRecipient: intent.treasuryRecipient,
-      expectedLamports: intent.expectedLamports,
+      expectedCreatorLamports: toCreatorLamports,
+      expectedTreasuryLamports: toTreasuryLamports,
     });
     if (!check.ok) {
       await prisma.mintIntent.update({
