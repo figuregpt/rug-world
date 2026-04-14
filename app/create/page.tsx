@@ -526,9 +526,30 @@ export default function CreatePage() {
         collectionUri,
       });
     } catch (err) {
-      console.error(err);
-      const message =
-        err instanceof Error ? err.message : "Unknown error. Check console.";
+      console.error("Launch failed", err);
+      let message: string;
+      if (err instanceof Error) {
+        message = err.message || err.name || "Launch failed (no message)";
+      } else if (err && typeof err === "object") {
+        // DOM Event objects (e.g. image load failure) have no useful message;
+        // surface type so we can tell why.
+        const asEvent = err as { type?: string; target?: unknown };
+        if (asEvent.type) {
+          const tgt =
+            (asEvent.target as { src?: string; tagName?: string })?.src ||
+            (asEvent.target as { tagName?: string })?.tagName ||
+            "target";
+          message = `DOM ${asEvent.type} error on ${String(tgt).slice(0, 80)}`;
+        } else {
+          try {
+            message = JSON.stringify(err);
+          } catch {
+            message = String(err);
+          }
+        }
+      } else {
+        message = String(err);
+      }
       setLaunchState({ stage: "error", message });
     }
   };

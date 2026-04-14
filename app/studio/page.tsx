@@ -88,6 +88,7 @@ export default function StudioPage() {
   const [newOnePosition, setNewOnePosition] = useState<"end" | "custom">("end");
   const [newOneSlot, setNewOneSlot] = useState("");
   const [openFilterSections, setOpenFilterSections] = useState<Record<string, boolean>>({ type: true });
+  const [preparingLaunch, setPreparingLaunch] = useState(false);
   const [selectionMode, setSelectionMode] = useState(false);
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [launchOpen, setLaunchOpen] = useState(false);
@@ -439,11 +440,57 @@ export default function StudioPage() {
   };
 
   // Save collection data to localStorage and navigate to /create
-  const confirmLaunch = () => {
+  // blob: URLs only live as long as the current tab session; convert them
+  // to data: URLs so the draft survives navigating to /create.
+  async function blobToDataUrl(url: string): Promise<string> {
+    if (!url.startsWith("blob:")) return url;
+    const res = await fetch(url);
+    const blob = await res.blob();
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  }
+
+  const confirmLaunch = async () => {
     if (!wallet.publicKey) {
       alert("Connect your wallet before launching.");
       return;
     }
+    if (preparingLaunch) return;
+    setPreparingLaunch(true);
+
+    // Convert every unique blob: URL to a data: URL once, cache the results.
+    const urlCache = new Map<string, string>();
+    async function convert(url?: string): Promise<string | undefined> {
+      if (!url) return undefined;
+      if (!url.startsWith("blob:")) return url;
+      const cached = urlCache.get(url);
+      if (cached) return cached;
+      const dataUrl = await blobToDataUrl(url);
+      urlCache.set(url, dataUrl);
+      return dataUrl;
+    }
+
+    const minimal = await Promise.all(
+      generated.map(async (nft) => ({
+        tokenId: nft.tokenId,
+        dna: nft.dna,
+        isOneOfOne: nft.isOneOfOne || false,
+        customImage: await convert(nft.customImage),
+        customName: nft.customName,
+        traits: await Promise.all(
+          nft.traits.map(async (t) => ({
+            layerName: t.layerName,
+            traitName: t.traitName,
+            imageUrl: await convert(t.imageUrl),
+          }))
+        ),
+      }))
+    );
+
     const payload = {
       name: collectionName,
       tagline,
@@ -458,28 +505,22 @@ export default function StudioPage() {
       draftOwner: wallet.publicKey.toString(),
       createdAt: new Date().toISOString(),
     };
+
     if (typeof window !== "undefined") {
       localStorage.setItem("rugworld:collection", JSON.stringify(payload));
-      // Persist generated NFT list for the launch/upload step.
-      // imageUrl values are blob: URLs valid only while this tab stays open.
-      const minimal = generated.map((nft) => ({
-        tokenId: nft.tokenId,
-        dna: nft.dna,
-        isOneOfOne: nft.isOneOfOne || false,
-        customImage: nft.customImage,
-        customName: nft.customName,
-        traits: nft.traits.map((t) => ({
-          layerName: t.layerName,
-          traitName: t.traitName,
-          imageUrl: t.imageUrl,
-        })),
-      }));
       try {
         localStorage.setItem("rugworld:generated", JSON.stringify(minimal));
-      } catch {
-        console.warn("localStorage full; generated list not persisted");
+      } catch (err) {
+        console.error("localStorage quota exceeded; collection is too large for localStorage.", err);
+        alert(
+          "This collection is too large to hand off via localStorage. " +
+            "Reduce the supply or open a smaller batch."
+        );
+        setPreparingLaunch(false);
+        return;
       }
     }
+    setPreparingLaunch(false);
     router.push("/create");
   };
 
@@ -1494,9 +1535,10 @@ export default function StudioPage() {
                 </button>
                 <button
                   onClick={confirmLaunch}
-                  className="px-5 py-2.5 text-[13px] font-bold text-[#EDE3BC] bg-[#A64C4F] hover:bg-[#8a3d40] transition-colors"
+                  disabled={preparingLaunch}
+                  className="px-5 py-2.5 text-[13px] font-bold text-[#EDE3BC] bg-[#A64C4F] hover:bg-[#8a3d40] disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
                 >
-                  Continue to Launch →
+                  {preparingLaunch ? "Preparing..." : "Continue to Launch →"}
                 </button>
               </div>
             </motion.div>
