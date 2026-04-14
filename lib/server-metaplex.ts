@@ -23,19 +23,26 @@ const CLUSTER: "devnet" | "mainnet-beta" =
   (process.env.SOLANA_CLUSTER as "devnet" | "mainnet-beta") || "devnet";
 
 /**
- * Parse the operator's private key from env.
- *
- * Accepts the JSON array format produced by `solana-keygen new` (e.g.
- * `[1,2,3,...]`). Store in your .env.local as OPERATOR_PRIVATE_KEY.
+ * Parse the operator's private key from env. Supports two formats:
+ *   - JSON array of bytes (output of `solana-keygen new`): `[1,2,3,...]`
+ *   - base58 string (Phantom / Solflare export, `solana-keygen grind` etc.)
  */
 function parseSecretKey(envValue: string): Uint8Array {
   const trimmed = envValue.trim();
   if (trimmed.startsWith("[")) {
     return Uint8Array.from(JSON.parse(trimmed));
   }
-  throw new Error(
-    "OPERATOR_PRIVATE_KEY must be a JSON array (output of solana-keygen new)"
-  );
+  // base58 fallback
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const bs58 = require("bs58");
+  const decoder = bs58.default ?? bs58;
+  const decoded: Uint8Array = decoder.decode(trimmed);
+  if (decoded.length !== 64) {
+    throw new Error(
+      `OPERATOR_PRIVATE_KEY base58 must decode to 64 bytes, got ${decoded.length}`
+    );
+  }
+  return decoded;
 }
 
 let cachedUmi: Umi | null = null;
