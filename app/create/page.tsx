@@ -587,15 +587,31 @@ export default function CreatePage() {
                   </div>
                 </div>
 
-                <div className="border border-[#C4B99A] p-5">
-                  <div className="flex items-center justify-between mb-2">
+                <div className="border border-[#C4B99A] p-5 space-y-3">
+                  <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-[14px] font-semibold text-[#2F2B28]">Marketplace Fee</p>
+                      <p className="text-[14px] font-semibold text-[#2F2B28]">Platform Fee</p>
                       <p className="text-[12px] text-[#826D62] mt-0.5">
-                        Rug.World takes {MARKETPLACE_FEE}% from buyers on every secondary sale. Not deducted from seller.
+                        Rug.World takes {MARKETPLACE_FEE}% on top of mint price from the buyer, and another {MARKETPLACE_FEE}% from the creator&apos;s share of each mint.
                       </p>
                     </div>
-                    <span className="text-[22px] font-bold text-[#826D62]">{MARKETPLACE_FEE}%</span>
+                    <span className="text-[22px] font-bold text-[#826D62]">{MARKETPLACE_FEE * 2}%</span>
+                  </div>
+                  <div className="pt-3 border-t border-[#C4B99A] space-y-1 text-[12px]">
+                    <div className="flex justify-between">
+                      <span className="text-[#826D62]">Added to buyer&apos;s cost</span>
+                      <span className="font-mono text-[#2F2B28]">+{MARKETPLACE_FEE}% on top</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-[#826D62]">Cut from creator&apos;s share</span>
+                      <span className="font-mono text-[#2F2B28]">-{MARKETPLACE_FEE}% of mint price</span>
+                    </div>
+                    <div className="flex justify-between pt-1 border-t border-[#C4B99A]">
+                      <span className="text-[#826D62]">Example: 1 SOL mint</span>
+                      <span className="font-mono text-[#2F2B28]">
+                        buyer pays 1.025, you get 0.975
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1082,19 +1098,23 @@ export default function CreatePage() {
 
             {/* Fees summary */}
             <div className="border border-[#C4B99A] bg-[#C4B99A]/15 p-4">
-              <p className="text-[12px] font-semibold text-[#2F2B28] mb-3">Ongoing fees</p>
+              <p className="text-[12px] font-semibold text-[#2F2B28] mb-3">Platform fees (per mint)</p>
               <div className="space-y-2 text-[12px]">
                 <div className="flex justify-between">
-                  <span className="text-[#826D62]">Royalty (stakers)</span>
-                  <span className="font-mono text-[#A64C4F] font-bold">10%</span>
+                  <span className="text-[#826D62]">Added to buyer&apos;s cost</span>
+                  <span className="font-mono text-[#2F2B28] font-bold">+{MARKETPLACE_FEE}%</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-[#826D62]">Marketplace fee (from buyers)</span>
-                  <span className="font-mono text-[#2F2B28] font-bold">{MARKETPLACE_FEE}%</span>
+                  <span className="text-[#826D62]">Cut from your share</span>
+                  <span className="font-mono text-[#2F2B28] font-bold">-{MARKETPLACE_FEE}%</span>
+                </div>
+                <div className="flex justify-between pt-2 border-t border-[#C4B99A]">
+                  <span className="text-[#826D62]">Secondary royalty (stakers)</span>
+                  <span className="font-mono text-[#A64C4F] font-bold">10%</span>
                 </div>
               </div>
               <p className="text-[11px] text-[#8A8480] mt-3 leading-[1.4]">
-                Fees apply to secondary sales only. Primary mint proceeds go to you.
+                For a 1 SOL mint: buyer pays 1.025 SOL, you receive 0.975 SOL per NFT.
               </p>
             </div>
           </motion.aside>

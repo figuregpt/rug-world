@@ -6,7 +6,12 @@ import { randomBytes } from "crypto";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const MARKETPLACE_FEE_BPS = 250; // 2.5%
+// 2.5% added on top of the mint price - paid by the buyer
+const BUYER_FEE_BPS = 250;
+// 2.5% deducted from the creator's share of the mint price
+const CREATOR_FEE_BPS = 250;
+// Small per-mint buffer that lands in the treasury and is later used to fund
+// the operator wallet (Irys uploads, network fees, etc.)
 const UPLOAD_BUFFER_PER_MINT_SOL = 0.004;
 const INTENT_TTL_MS = 5 * 60 * 1000; // 5 min
 const RUG_WORLD_TREASURY = "A5rBeqfX7rYfxvCyGyikPNXbozCfHYwBSVHzZfD2hrJa";
@@ -125,14 +130,20 @@ export async function POST(req: Request) {
       data: { status: "expired" },
     });
 
-    // Server-computed amounts (untamperable)
+    // Server-computed amounts (untamperable).
+    // Fee model:
+    //   buyer pays: basePrice + 2.5% buyer fee + per-mint buffer
+    //   creator receives: basePrice - 2.5% creator cut
+    //   treasury receives: 2.5% buyer fee + 2.5% creator cut + buffer
     const priceSol = parseFloat(activePhase.price) || 0;
     const baseTotalSol = priceSol * body.qty;
-    const feeSol = (baseTotalSol * MARKETPLACE_FEE_BPS) / 10000;
+    const buyerFeeSol = (baseTotalSol * BUYER_FEE_BPS) / 10000;
+    const creatorFeeSol = (baseTotalSol * CREATOR_FEE_BPS) / 10000;
     const bufferSol = UPLOAD_BUFFER_PER_MINT_SOL * body.qty;
-    const toCreatorSol = baseTotalSol - feeSol;
-    const toTreasurySol = feeSol + bufferSol;
-    const totalSol = toCreatorSol + toTreasurySol;
+
+    const toCreatorSol = baseTotalSol - creatorFeeSol;
+    const toTreasurySol = buyerFeeSol + creatorFeeSol + bufferSol;
+    const totalSol = toCreatorSol + toTreasurySol; // == baseTotalSol + buyerFeeSol + bufferSol
     const expectedLamports = BigInt(Math.floor(totalSol * LAMPORTS_PER_SOL));
 
     const nonce = randomBytes(16).toString("hex");

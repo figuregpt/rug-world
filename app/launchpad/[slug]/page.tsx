@@ -430,8 +430,13 @@ export default function MintPage({ params }: { params: Promise<{ slug: string }>
                   >
                     +
                   </button>
-                  <span className="text-[13px] text-[#826D62] ml-auto">
-                    Total: <span className="font-bold text-[#2F2B28]">{(activePrice * mintQty).toFixed(2)} SOL</span>
+                  <span className="text-[13px] text-[#826D62] ml-auto text-right">
+                    <span className="block">
+                      Mint: <span className="font-medium text-[#2F2B28]">{(activePrice * mintQty).toFixed(2)} SOL</span>
+                    </span>
+                    <span className="block text-[11px] text-[#8A8480]">
+                      + 2.5% fee + tiny upload buffer
+                    </span>
                   </span>
                 </div>
                 <button
@@ -445,10 +450,10 @@ export default function MintPage({ params }: { params: Promise<{ slug: string }>
                     ? `Waiting for payment (${mintState.totalSol.toFixed(4)} SOL)...`
                     : mintState.stage === "server-minting"
                     ? "Server minting NFTs..."
-                    : `Mint ${mintQty} · ${(activePrice * mintQty).toFixed(2)} SOL`}
+                    : `Mint ${mintQty} · ~${(activePrice * mintQty * 1.025).toFixed(3)} SOL`}
                 </button>
                 <p className="text-[11px] text-[#8A8480] mt-2 leading-[1.4]">
-                  You sign one payment. Rug.World handles the upload and delivers the NFT to your wallet.
+                  You sign one payment (mint price + 2.5% fee). Rug.World handles the upload and delivers the NFT to your wallet.
                 </p>
                 {!wallet.connected && (
                   <p className="text-[11px] text-[#DEA831] mt-2">Connect your wallet to mint.</p>
