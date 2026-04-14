@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useWallet } from "@solana/wallet-adapter-react";
 import {
   launchCollection,
@@ -76,8 +77,17 @@ type LaunchState =
   | { stage: "done"; collectionAddress: string; txSignature: string; mintsMinted: number; collectionUri: string }
   | { stage: "error"; message: string };
 
+type LoadState =
+  | { kind: "loading" }
+  | { kind: "needs-wallet" }
+  | { kind: "no-draft" } // will redirect to /studio
+  | { kind: "already-launched"; slug: string } // will redirect to /launchpad/[slug]
+  | { kind: "ready" };
+
 export default function CreatePage() {
   const wallet = useWallet();
+  const router = useRouter();
+  const [loadState, setLoadState] = useState<LoadState>({ kind: "loading" });
   const [info, setInfo] = useState<CollectionInfo | null>(null);
   const [storedNFTs, setStoredNFTs] = useState<StoredNFT[]>([]);
   const [preMint, setPreMint] = useState("0");
@@ -91,44 +101,86 @@ export default function CreatePage() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const raw = localStorage.getItem("rugworld:collection");
-    if (!raw) {
+
+    // 1. Wallet is required to do anything on this page.
+    if (!wallet.publicKey) {
       setInfo(null);
       setStoredNFTs([]);
+      setLoadState({ kind: "needs-wallet" });
       return;
     }
+
+    // 2. Look for a draft.
+    const raw = localStorage.getItem("rugworld:collection");
+    if (!raw) {
+      setLoadState({ kind: "no-draft" });
+      return;
+    }
+
     let parsed: CollectionInfo | null = null;
     try {
       parsed = JSON.parse(raw) as CollectionInfo;
     } catch {
-      setInfo(null);
+      localStorage.removeItem("rugworld:collection");
+      localStorage.removeItem("rugworld:generated");
+      setLoadState({ kind: "no-draft" });
       return;
     }
 
-    // Only show the draft to the wallet that created it. If the connected
-    // wallet differs (or nothing is connected yet), hide it — next wallet
-    // will see an empty slate.
-    const currentWallet = wallet.publicKey?.toString();
-    if (parsed.draftOwner && currentWallet && parsed.draftOwner !== currentWallet) {
-      setInfo(null);
-      setStoredNFTs([]);
-      return;
-    }
-    if (parsed.draftOwner && !currentWallet) {
-      // No wallet yet — don't show someone else's draft on an anonymous view
-      setInfo(null);
-      setStoredNFTs([]);
+    // 3. Drafts must belong to the connected wallet.
+    //    Legacy drafts without `draftOwner` are treated as no-draft so other
+    //    wallets in the same browser don't inherit them.
+    const currentWallet = wallet.publicKey.toString();
+    if (!parsed.draftOwner || parsed.draftOwner !== currentWallet) {
+      setLoadState({ kind: "no-draft" });
       return;
     }
 
-    setInfo(parsed);
-    const rawGen = localStorage.getItem("rugworld:generated");
-    if (rawGen) {
-      try {
-        setStoredNFTs(JSON.parse(rawGen));
-      } catch {}
-    }
+    // 4. If a launch with this slug already exists in the backend, this draft
+    //    is stale — clean it up and send the user to the live collection.
+    const slug = slugify(parsed.name);
+    fetch(`/api/launches/${slug}`)
+      .then((r) => {
+        if (r.ok) {
+          localStorage.removeItem("rugworld:collection");
+          localStorage.removeItem("rugworld:generated");
+          setLoadState({ kind: "already-launched", slug });
+          return null;
+        }
+        return parsed;
+      })
+      .then((draft) => {
+        if (!draft) return;
+        setInfo(draft);
+        const rawGen = localStorage.getItem("rugworld:generated");
+        if (rawGen) {
+          try {
+            setStoredNFTs(JSON.parse(rawGen));
+          } catch {}
+        }
+        setLoadState({ kind: "ready" });
+      })
+      .catch(() => {
+        // Backend errored - assume not launched and let the user proceed
+        setInfo(parsed);
+        const rawGen = localStorage.getItem("rugworld:generated");
+        if (rawGen) {
+          try {
+            setStoredNFTs(JSON.parse(rawGen));
+          } catch {}
+        }
+        setLoadState({ kind: "ready" });
+      });
   }, [wallet.publicKey]);
+
+  // Auto-redirect when the load state demands it.
+  useEffect(() => {
+    if (loadState.kind === "no-draft") {
+      router.replace("/studio");
+    } else if (loadState.kind === "already-launched") {
+      router.replace(`/launchpad/${loadState.slug}`);
+    }
+  }, [loadState, router]);
 
   const addPhase = () => {
     setPhases([
@@ -480,8 +532,8 @@ export default function CreatePage() {
   const input = "w-full px-3 py-2 bg-[#EDE3BC] border border-[#C4B99A] text-[14px] text-[#2F2B28] placeholder:text-[#8A8480] focus:border-[#A64C4F] outline-none transition-colors";
   const label = "block text-[11px] font-mono text-[#826D62] uppercase tracking-wider mb-1";
 
-  // If no collection info, show empty state
-  if (!info) {
+  // Wallet-gated + redirect flow
+  if (loadState.kind === "loading" || !info) {
     return (
       <div className="pt-[72px] min-h-screen">
         <div className="container-main py-[clamp(40px,5vw,64px)]">
@@ -493,14 +545,26 @@ export default function CreatePage() {
             <h1 className="text-[clamp(36px,5vw,56px)] font-black text-[#2F2B28] leading-[1] mb-3">
               Launch Flow
             </h1>
-            <p className="text-[clamp(15px,1.2vw,17px)] text-[#826D62] mb-6">
-              {wallet.publicKey
-                ? "No draft for this wallet yet. Head to the Studio to add your collection details, upload traits, and generate your NFTs first."
-                : "Connect your wallet to continue. Drafts are saved per wallet, so switching accounts shows a clean slate."}
-            </p>
-            <Link href="/studio" className="inline-flex px-6 py-3 text-[14px] font-bold text-[#EDE3BC] bg-[#A64C4F] hover:bg-[#8a3d40] transition-colors">
-              Open Studio
-            </Link>
+            {loadState.kind === "needs-wallet" ? (
+              <>
+                <p className="text-[clamp(15px,1.2vw,17px)] text-[#826D62] mb-6">
+                  Connect your wallet to continue. Drafts are saved per wallet and you&apos;ll sign the launch transactions from that wallet.
+                </p>
+                <p className="text-[12px] text-[#8A8480]">
+                  Use the Connect Wallet button in the top right.
+                </p>
+              </>
+            ) : loadState.kind === "no-draft" ? (
+              <p className="text-[clamp(15px,1.2vw,17px)] text-[#826D62] mb-6">
+                No draft found for this wallet. Redirecting you to the Studio to start a new collection...
+              </p>
+            ) : loadState.kind === "already-launched" ? (
+              <p className="text-[clamp(15px,1.2vw,17px)] text-[#826D62] mb-6">
+                That draft was already launched. Redirecting to the collection page...
+              </p>
+            ) : (
+              <p className="text-[clamp(15px,1.2vw,17px)] text-[#826D62]">Loading...</p>
+            )}
           </motion.div>
         </div>
       </div>
