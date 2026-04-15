@@ -15,6 +15,7 @@ import {
 } from "@/lib/metaplex";
 import { flattenLayersToPng } from "@/lib/uploader";
 import { slugify } from "@/lib/launched";
+import { idbGet, idbDelete, DRAFT_ASSETS_KEY } from "@/lib/draft-store";
 
 type Phase = {
   id: string;
@@ -173,34 +174,46 @@ export default function CreatePage() {
     //    is stale — clean it up and send the user to the live collection.
     const slug = slugify(parsed.name);
     fetch(`/api/launches/${slug}`)
-      .then((r) => {
+      .then(async (r) => {
         if (r.ok) {
           localStorage.removeItem("rugworld:collection");
           localStorage.removeItem("rugworld:generated");
+          await idbDelete(DRAFT_ASSETS_KEY).catch(() => undefined);
           setLoadState({ kind: "already-launched", slug });
           return null;
         }
         return parsed;
       })
-      .then((draft) => {
+      .then(async (draft) => {
         if (!draft) return;
         setInfo(draft);
-        const rawGen = localStorage.getItem("rugworld:generated");
-        if (rawGen) {
-          try {
-            setStoredNFTs(JSON.parse(rawGen));
-          } catch {}
+        // Assets live in IndexedDB now. Fall back to the old localStorage
+        // location so existing drafts from a previous session still work.
+        const fromIdb = await idbGet<StoredNFT[]>(DRAFT_ASSETS_KEY).catch(() => null);
+        if (fromIdb) {
+          setStoredNFTs(fromIdb);
+        } else {
+          const rawGen = localStorage.getItem("rugworld:generated");
+          if (rawGen) {
+            try {
+              setStoredNFTs(JSON.parse(rawGen));
+            } catch {}
+          }
         }
         setLoadState({ kind: "ready" });
       })
-      .catch(() => {
-        // Backend errored - assume not launched and let the user proceed
+      .catch(async () => {
         setInfo(parsed);
-        const rawGen = localStorage.getItem("rugworld:generated");
-        if (rawGen) {
-          try {
-            setStoredNFTs(JSON.parse(rawGen));
-          } catch {}
+        const fromIdb = await idbGet<StoredNFT[]>(DRAFT_ASSETS_KEY).catch(() => null);
+        if (fromIdb) {
+          setStoredNFTs(fromIdb);
+        } else {
+          const rawGen = localStorage.getItem("rugworld:generated");
+          if (rawGen) {
+            try {
+              setStoredNFTs(JSON.parse(rawGen));
+            } catch {}
+          }
         }
         setLoadState({ kind: "ready" });
       });
@@ -516,6 +529,7 @@ export default function CreatePage() {
       if (typeof window !== "undefined") {
         localStorage.removeItem("rugworld:collection");
         localStorage.removeItem("rugworld:generated");
+        await idbDelete(DRAFT_ASSETS_KEY).catch(() => undefined);
       }
 
       setLaunchState({
@@ -634,11 +648,12 @@ export default function CreatePage() {
             Final step. Set your mint phases with timing, pre-mint to the founder wallet if you want, and confirm the launch fee.
           </p>
           <button
-            onClick={() => {
+            onClick={async () => {
               if (!confirm("Discard this draft and go back to Studio?")) return;
               if (typeof window !== "undefined") {
                 localStorage.removeItem("rugworld:collection");
                 localStorage.removeItem("rugworld:generated");
+                await idbDelete(DRAFT_ASSETS_KEY).catch(() => undefined);
               }
               setInfo(null);
               setStoredNFTs([]);

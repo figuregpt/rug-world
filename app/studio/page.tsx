@@ -4,6 +4,7 @@ import { useState, useRef, DragEvent, ChangeEvent } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useWallet } from "@solana/wallet-adapter-react";
+import { idbSet, idbDelete, DRAFT_ASSETS_KEY } from "@/lib/draft-store";
 
 type Trait = {
   id: string;
@@ -508,13 +509,16 @@ export default function StudioPage() {
 
     if (typeof window !== "undefined") {
       localStorage.setItem("rugworld:collection", JSON.stringify(payload));
+      // The heavy generated array (base64 images) goes to IndexedDB — well
+      // above the ~5MB localStorage cap. Leftover localStorage entry from
+      // older builds gets cleaned up.
+      localStorage.removeItem("rugworld:generated");
       try {
-        localStorage.setItem("rugworld:generated", JSON.stringify(minimal));
+        await idbSet(DRAFT_ASSETS_KEY, minimal);
       } catch (err) {
-        console.error("localStorage quota exceeded; collection is too large for localStorage.", err);
+        console.error("Failed to persist draft assets to IndexedDB", err);
         alert(
-          "This collection is too large to hand off via localStorage. " +
-            "Reduce the supply or open a smaller batch."
+          "Couldn't save the draft. Your browser may have blocked IndexedDB or run out of space."
         );
         setPreparingLaunch(false);
         return;
