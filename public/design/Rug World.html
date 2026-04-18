@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Rug.World — Redesign</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;1,9..144,300;1,9..144,400&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="root"></div>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+  <script type="text/babel" src="icons.jsx"></script>
+  <script type="text/babel" src="data.jsx"></script>
+  <script type="text/babel" src="shell.jsx"></script>
+  <script type="text/babel" src="screens-home.jsx"></script>
+  <script type="text/babel" src="screens-launchpad.jsx"></script>
+  <script type="text/babel" src="screens-stake.jsx"></script>
+  <script type="text/babel" src="screens-studio.jsx"></script>
+
+  <script type="text/babel">
+    const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+      "theme": "dark",
+      "accent": "Terracotta",
+      "layout": "grid",
+      "density": "cozy"
+    }/*EDITMODE-END*/;
+
+    const { Sidebar, Topbar, TweaksPanel, applyAccent, HomeScreen, LaunchpadScreen, CollectionScreen, StakeScreen, StudioScreen, CreateScreen, Icon } = window;
+
+    function App() {
+      const [route, setRoute] = React.useState(() => localStorage.getItem("rw:route") || "home");
+      const [collection, setCollection] = React.useState(null);
+      const [collapsed, setCollapsed] = React.useState(false);
+      const [mobileOpen, setMobileOpen] = React.useState(false);
+      const [tweaks, setTweaks] = React.useState(TWEAK_DEFAULTS);
+      const [tweaksOpen, setTweaksOpen] = React.useState(false);
+      const [editModeOn, setEditModeOn] = React.useState(false);
+
+      React.useEffect(() => { localStorage.setItem("rw:route", route); }, [route]);
+
+      React.useEffect(() => {
+        document.body.classList.toggle("sidebar-open", mobileOpen);
+        return () => document.body.classList.remove("sidebar-open");
+      }, [mobileOpen]);
+
+      React.useEffect(() => {
+        document.documentElement.setAttribute("data-theme", tweaks.theme);
+        applyAccent(tweaks.theme, tweaks.accent);
+      }, [tweaks]);
+
+      // Tweaks protocol
+      React.useEffect(() => {
+        const onMsg = (e) => {
+          if (e.data?.type === "__activate_edit_mode") { setEditModeOn(true); setTweaksOpen(true); }
+          if (e.data?.type === "__deactivate_edit_mode") { setEditModeOn(false); setTweaksOpen(false); }
+        };
+        window.addEventListener("message", onMsg);
+        window.parent.postMessage({ type: "__edit_mode_available" }, "*");
+        return () => window.removeEventListener("message", onMsg);
+      }, []);
+
+      React.useEffect(() => {
+        if (editModeOn) {
+          window.parent.postMessage({ type: "__edit_mode_set_keys", edits: tweaks }, "*");
+        }
+      }, [tweaks, editModeOn]);
+
+      const openCollection = (id) => { setCollection(id); setRoute("collection"); };
+
+      let screen;
+      if (route === "home")       screen = <HomeScreen setRoute={setRoute} openCollection={openCollection} />;
+      else if (route === "launchpad" || route === "explore") screen = <LaunchpadScreen openCollection={openCollection} />;
+      else if (route === "collection") screen = <CollectionScreen id={collection} setRoute={setRoute} />;
+      else if (route === "stake")  screen = <StakeScreen />;
+      else if (route === "studio") screen = <StudioScreen />;
+      else if (route === "create") screen = <CreateScreen />;
+
+      const screenLabel = {
+        home: "01 Home", launchpad: "02 Launchpad", explore: "02 Launchpad",
+        collection: "03 Collection Detail", stake: "04 Stake",
+        studio: "05 Studio", create: "06 Create"
+      }[route];
+
+      return (
+        <div className={`app ${collapsed ? "collapsed" : ""}`} data-screen-label={screenLabel}>
+          <div className="sidebar-scrim" onClick={() => { setMobileOpen(false); document.body.classList.remove("filter-open"); }} />
+          <Sidebar
+            route={route}
+            setRoute={setRoute}
+            collapsed={collapsed}
+            onToggleCollapse={() => setCollapsed(c => !c)}
+            mobileOpen={mobileOpen}
+            onCloseMobile={() => setMobileOpen(false)}
+          />
+          <div className="main">
+            <Topbar
+              theme={tweaks.theme}
+              setTheme={(t) => setTweaks({ ...tweaks, theme: t })}
+              onOpenCmd={() => {}}
+              onOpenMenu={() => setMobileOpen(true)}
+            />
+            <div className="scroll">{screen}</div>
+          </div>
+          {editModeOn && <TweaksPanel open={tweaksOpen} onClose={() => setTweaksOpen(false)} tweaks={tweaks} setTweaks={setTweaks} />}
+        </div>
+      );
+    }
+
+    // Wait for Babel to compile all .jsx scripts
+    const waitForScreens = setInterval(() => {
+      if (window.HomeScreen && window.LaunchpadScreen && window.CollectionScreen && window.StakeScreen && window.StudioScreen && window.CreateScreen && window.Icon) {
+        clearInterval(waitForScreens);
+        ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+      }
+    }, 50);
+  </script>
+</body>
+</html>

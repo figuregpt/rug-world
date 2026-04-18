@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import SolanaProvider from "@/components/SolanaProvider";
-import RugNav from "@/components/RugNav";
+import Shell from "@/components/Shell";
 
 export const metadata: Metadata = {
   title: "Rug World",
-  description: "The curated NFT launchpad with built-in royalty sharing. Stake NFTs, earn royalties.",
+  description: "Permissionless NFT launchpad on Solana. Royalties flow to holders.",
 };
 
 export default function RootLayout({
@@ -14,21 +14,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="antialiased">
+    <html lang="en" data-theme="dark">
       <head>
         <link
-          href="https://api.fontshare.com/v2/css?f[]=satoshi@300,400,500,700,900&display=swap"
-          rel="stylesheet"
-        />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Yuji+Syuku&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
           rel="stylesheet"
         />
       </head>
       <body>
         <SolanaProvider>
-          <RugNav />
-          {children}
+          <Shell>{children}</Shell>
         </SolanaProvider>
       </body>
     </html>

@@ -1,673 +1,249 @@
 "use client";
 
-import { useEffect, useState, use } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useState, use } from "react";
 import Link from "next/link";
-import { useWallet } from "@solana/wallet-adapter-react";
-import type { LaunchedCollection, LaunchedPhase } from "@/lib/launched";
-import { sendPaymentForIntent, accountExplorerUrl } from "@/lib/metaplex";
 
-function phaseRuntimeStatus(p: LaunchedPhase, nowMs: number): "active" | "upcoming" | "ended" {
-  // Unscheduled phases: missing startDate = active immediately, missing endDate
-  // = never expires. This matches the UI where creators can launch without
-  // pinning a schedule and rely on admin controls or sold-out to close mint.
-  const start = p.startDate
-    ? new Date(`${p.startDate}T${p.startTime || "00:00"}`).getTime()
-    : -Infinity;
-  const end = p.endDate
-    ? new Date(`${p.endDate}T${p.endTime || "23:59"}`).getTime()
-    : Infinity;
-  if (nowMs < start) return "upcoming";
-  if (nowMs >= end) return "ended";
-  return "active";
-}
-
-function phaseStartMs(p: LaunchedPhase): number | null {
-  if (!p.startDate) return null;
-  return new Date(`${p.startDate}T${p.startTime || "00:00"}`).getTime();
-}
-
-function phaseEndMs(p: LaunchedPhase): number | null {
-  if (!p.endDate) return null;
-  return new Date(`${p.endDate}T${p.endTime || "23:59"}`).getTime();
-}
-
-function formatCountdown(ms: number): string {
-  if (ms <= 0) return "0s";
-  const totalSec = Math.floor(ms / 1000);
-  const days = Math.floor(totalSec / 86400);
-  const hours = Math.floor((totalSec % 86400) / 3600);
-  const mins = Math.floor((totalSec % 3600) / 60);
-  const secs = totalSec % 60;
-  if (days > 0) return `${days}d ${hours}h ${mins}m`;
-  if (hours > 0) return `${hours}h ${mins}m ${secs}s`;
-  if (mins > 0) return `${mins}m ${secs}s`;
-  return `${secs}s`;
-}
-
-function PhaseRow({ phase, index, nowMs }: { phase: LaunchedPhase; index: number; nowMs: number }) {
-  const status = phaseRuntimeStatus(phase, nowMs);
-  const startMs = phaseStartMs(phase);
-  const endMs = phaseEndMs(phase);
-  let countdownLabel: string | null = null;
-  if (status === "upcoming" && startMs !== null) {
-    countdownLabel = `Starts in ${formatCountdown(startMs - nowMs)}`;
-  } else if (status === "active" && endMs !== null) {
-    countdownLabel = `Ends in ${formatCountdown(endMs - nowMs)}`;
+/* ── Icons ── */
+function I({ name, size = 16 }: { name: string; size?: number }) {
+  const p = { width: size, height: size, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 1.6, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
+  switch (name) {
+    case "chevron-right": return <svg {...p}><path d="M9 6l6 6-6 6"/></svg>;
+    case "verified": return <svg {...p}><path d="M12 2l2 2 3-1 1 3 3 1-1 3 2 2-2 2 1 3-3 1-1 3-3-1-2 2-2-2-3 1-1-3-3-1 1-3-2-2 2-2-1-3 3-1 1-3 3 1z"/><path d="M8 12l3 3 5-6" strokeWidth={1.8}/></svg>;
+    case "sparkle": return <svg {...p}><path d="M12 3l2 5 5 2-5 2-2 5-2-5-5-2 5-2z"/></svg>;
+    case "shield": return <svg {...p}><path d="M12 3l8 3v6c0 5-4 8-8 9-4-1-8-4-8-9V6l8-3z"/></svg>;
+    case "plus": return <svg {...p}><path d="M12 5v14M5 12h14"/></svg>;
+    case "x": return <svg {...p}><path d="M6 6l12 12M18 6L6 18"/></svg>;
+    case "twitter": return <svg {...p}><path d="M4 4l7.5 10L4 20h3l6-6 4 6h4l-7.5-10L20 4h-3l-5 5-3.5-5z" fill="currentColor" stroke="none"/></svg>;
+    case "discord": return <svg {...p}><path d="M8 7a12 12 0 0 1 8 0M7 10c-1 2-1 5 0 9 1 1 3 1 4 0M17 10c1 2 1 5 0 9-1 1-3 1-4 0"/><circle cx="9.5" cy="13.5" r="1"/><circle cx="14.5" cy="13.5" r="1"/></svg>;
+    case "external": return <svg {...p}><path d="M14 4h6v6M20 4L10 14M18 14v6H4V6h6"/></svg>;
+    case "copy": return <svg {...p}><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>;
+    default: return null;
   }
-  const statusColor = {
-    active: "bg-[#A64C4F] text-[#EDE3BC]",
-    upcoming: "bg-[#DEA831]/15 text-[#DEA831]",
-    ended: "bg-[#C4B99A]/60 text-[#826D62]",
-  }[status];
-  const isActive = status === "active";
-  const supplyLabel =
-    !phase.supply || phase.supply === "0" ? "Remaining" : phase.supply;
-  const walletLabel =
-    !phase.maxPerWallet || phase.maxPerWallet === "0" ? "Unlimited" : phase.maxPerWallet;
+}
 
+function RugTile({ v = 1, glyph }: { v?: number; glyph?: string }) {
+  return <div className={`rug-tile ${v > 1 ? `v${v}` : ""}`}>{glyph && <span className="glyph">{glyph}</span>}</div>;
+}
+
+function Avatar({ seed = "x", size = 22 }: { seed?: string; size?: number }) {
+  const hue = (seed.charCodeAt(0) * 37) % 360;
   return (
-    <div
-      className={`border p-4 transition-all ${
-        isActive ? "border-[#A64C4F]/30 bg-[#A64C4F]/[0.03]" : "border-[#C4B99A]"
-      }`}
-    >
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-3">
-          <span className="text-[11px] font-mono text-[#826D62]">0{index + 1}</span>
-          <h4 className="text-[14px] font-bold text-[#2F2B28]">{phase.name || "Phase"}</h4>
-        </div>
-        <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 ${statusColor}`}>
-          {status}
-        </span>
-      </div>
-      <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[12px]">
-        <div className="flex justify-between">
-          <span className="text-[#826D62]">Price</span>
-          <span className="text-[#2F2B28] font-medium">{phase.price} SOL</span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-[#826D62]">Per Wallet</span>
-          <span className="text-[#2F2B28] font-medium">{walletLabel}</span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-[#826D62]">Supply</span>
-          <span className="text-[#2F2B28] font-medium">{supplyLabel}</span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-[#826D62]">Start</span>
-          <span className="text-[#2F2B28] font-medium">
-            {phase.startDate ? `${phase.startDate} ${phase.startTime}` : "TBD"}
-          </span>
-        </div>
-        {phase.endDate && (
-          <div className="flex justify-between col-span-2">
-            <span className="text-[#826D62]">End</span>
-            <span className="text-[#2F2B28] font-medium">
-              {phase.endDate} {phase.endTime}
-            </span>
-          </div>
-        )}
-      </div>
-      {countdownLabel && (
-        <div className={`mt-3 pt-3 border-t border-[#C4B99A] flex items-center justify-between text-[11px] ${
-          status === "active" ? "text-[#A64C4F]" : "text-[#DEA831]"
-        }`}>
-          <span className="font-mono font-semibold tracking-wider uppercase">
-            {status === "active" ? "Live" : "Upcoming"}
-          </span>
-          <span className="font-mono font-bold">{countdownLabel}</span>
-        </div>
-      )}
+    <div style={{ width: size, height: size, borderRadius: "50%", background: `hsl(${hue} 40% 50%)`, display: "grid", placeItems: "center", color: "#fff", fontSize: size * 0.42, fontWeight: 700, flexShrink: 0 }}>
+      {seed[0]?.toUpperCase()}
     </div>
   );
 }
 
-type MintState =
-  | { stage: "idle" }
-  | { stage: "intent" }
-  | { stage: "paying"; totalSol: number }
-  | { stage: "server-minting"; step: string }
-  | { stage: "done"; assetAddresses: string[] }
-  | { stage: "error"; message: string };
+/* ── Mock data ── */
+const MOCK: Record<string, { id: string; name: string; creator: string; status: string; supply: number; minted: number; price: number; floor: number; vol24: number; chg: number; stakers: number; royalty: number; share: number; v: number; verified: boolean }> = {
+  "ottoman-echoes": { id: "ottoman-echoes", name: "Ottoman Echoes", creator: "atelier.sol", status: "Live", supply: 5000, minted: 3247, price: 0.5, floor: 0.68, vol24: 142.3, chg: 12.4, stakers: 1843, royalty: 10, share: 80, v: 1, verified: true },
+  "kilim-society": { id: "kilim-society", name: "Kilim Society", creator: "nomad.dao", status: "Live", supply: 3333, minted: 2901, price: 0.8, floor: 1.21, vol24: 98.7, chg: -3.1, stakers: 1207, royalty: 10, share: 75, v: 2, verified: true },
+  "anatolia-gen": { id: "anatolia-gen", name: "Anatolia Genesis", creator: "loom.labs", status: "Live", supply: 2222, minted: 1456, price: 1.2, floor: 1.55, vol24: 76.2, chg: 22.0, stakers: 812, royalty: 12, share: 90, v: 3, verified: true },
+  "thread-count": { id: "thread-count", name: "Thread Count", creator: "warp.studio", status: "Live", supply: 7500, minted: 6210, price: 0.25, floor: 0.31, vol24: 54.1, chg: 4.2, stakers: 2112, royalty: 8, share: 70, v: 4, verified: false },
+  "dye-room": { id: "dye-room", name: "The Dye Room", creator: "indigo.art", status: "Live", supply: 1000, minted: 994, price: 2.5, floor: 3.40, vol24: 210.0, chg: 38.5, stakers: 620, royalty: 15, share: 85, v: 5, verified: true },
+  "serpent-garden": { id: "serpent-garden", name: "Serpent Garden", creator: "sultan.eth", status: "Live", supply: 4000, minted: 1820, price: 0.6, floor: 0.72, vol24: 33.4, chg: -8.2, stakers: 441, royalty: 10, share: 80, v: 6, verified: false },
+  "caravan": { id: "caravan", name: "Caravan", creator: "silkroad.sol", status: "Ended", supply: 2000, minted: 2000, price: 0.7, floor: 1.08, vol24: 12.3, chg: 1.1, stakers: 1450, royalty: 10, share: 80, v: 5, verified: true },
+  "turkish-delight": { id: "turkish-delight", name: "Turkish Delight", creator: "bazaar.sol", status: "Ended", supply: 5555, minted: 5555, price: 0.3, floor: 0.44, vol24: 8.7, chg: -0.8, stakers: 3200, royalty: 10, share: 80, v: 6, verified: false },
+  "warp-weft": { id: "warp-weft", name: "Warp & Weft", creator: "loom.labs", status: "Ended", supply: 1500, minted: 1500, price: 1.0, floor: 1.88, vol24: 44.2, chg: 9.4, stakers: 900, royalty: 10, share: 85, v: 1, verified: true },
+};
 
-export default function MintPage({ params }: { params: Promise<{ slug: string }> }) {
-  const { slug } = use(params);
-  const wallet = useWallet();
-  const [col, setCol] = useState<LaunchedCollection | null | undefined>(undefined);
-  const [mintQty, setMintQty] = useState(1);
-  const [mintState, setMintState] = useState<MintState>({ stage: "idle" });
-  const [nowMs, setNowMs] = useState(() => Date.now());
-
-  useEffect(() => {
-    fetch(`/api/launches/${slug}`)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => {
-        if (!data?.collection) {
-          setCol(null);
-          return;
-        }
-        const c = data.collection;
-        setCol({
-          collectionAddress: c.collectionAddress,
-          collectionUri: c.collectionUri,
-          creatorWallet: c.creatorWallet,
-          txSignature: c.txSignature,
-          network: c.network,
-          cluster: c.network,
-          slug: c.slug,
-          name: c.name,
-          tagline: c.tagline || "",
-          description: c.description || "",
-          supply: c.supply,
-          preMintCount: c.preMintCount,
-          royaltyFee: c.royaltyFee,
-          holderShare: c.holderShare,
-          teamShare: c.teamShare,
-          minted: c.minted,
-          phases: c.phases,
-          status: c.status,
-          launchedAt: c.launchedAt,
-        });
-      })
-      .catch(() => setCol(null));
-  }, [slug]);
-
-  // Tick every second so countdowns update live
-  useEffect(() => {
-    const id = setInterval(() => setNowMs(Date.now()), 1000);
-    return () => clearInterval(id);
-  }, []);
-
-  // Loading state
-  if (col === undefined) {
-    return (
-      <div className="pt-[72px] min-h-screen">
-        <div className="container-main py-16">
-          <p className="text-[#826D62]">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (col === null) {
-    return (
-      <div className="pt-[72px] min-h-screen">
-        <div className="container-main py-16 max-w-[520px]">
-          <h1 className="text-[clamp(28px,4vw,42px)] font-black text-[#2F2B28] leading-[1] mb-3">
-            Collection not found
-          </h1>
-          <p className="text-[14px] text-[#826D62] mb-6">
-            This collection doesn&apos;t exist in your browser. If you launched it, reload this page in the same tab you used for the launch.
-          </p>
-          <Link
-            href="/launchpad"
-            className="text-[14px] text-[#A64C4F] hover:underline font-medium"
-          >
-            ← Back to Launchpad
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
-  const mintPct = col.supply > 0 ? Math.round((col.minted / col.supply) * 100) : 0;
-  const isMinting = col.status === "minting";
-  const activePhase = col.phases.find(
-    (p) => phaseRuntimeStatus(p, nowMs) === "active"
+function RoyaltyDonut({ share }: { share: number }) {
+  const size = 120, stroke = 18, r = (size - stroke) / 2, cx = size / 2, cy = size / 2;
+  const circ = 2 * Math.PI * r;
+  const a = (circ * share) / 100;
+  return (
+    <svg width={size} height={size}>
+      <g transform={`rotate(-90 ${cx} ${cy})`}>
+        <circle cx={cx} cy={cy} r={r} fill="none" stroke="var(--surface)" strokeWidth={stroke} />
+        <circle cx={cx} cy={cy} r={r} fill="none" stroke="var(--accent)" strokeWidth={stroke} strokeDasharray={`${a} ${circ - a}`} />
+      </g>
+      <text x={cx} y={cy - 2} textAnchor="middle" fill="var(--text)" fontFamily="Fraunces" fontSize="20" fontWeight="500">{share}%</text>
+      <text x={cx} y={cy + 14} textAnchor="middle" fill="var(--text-3)" fontFamily="JetBrains Mono" fontSize="9">TO STAKERS</text>
+    </svg>
   );
-  const stakerCut = (col.royaltyFee * col.holderShare) / 100;
-  const activePrice = activePhase ? parseFloat(activePhase.price) || 0 : 0;
-  const activeMax = activePhase
-    ? parseInt(activePhase.maxPerWallet) || 0
-    : 0;
-  const activeWalletLabel = activeMax === 0 ? "Unlimited" : `Max ${activeMax}`;
+}
 
-  const explorerUrl = `https://explorer.solana.com/address/${col.collectionAddress}?cluster=${col.cluster}`;
+function Split({ color, label, pct, amount, last }: { color: string; label: string; pct: number; amount: string; last?: boolean }) {
+  return (
+    <div style={{ padding: "10px 0", borderBottom: last ? "none" : "1px solid var(--border)" }}>
+      <div className="hstack" style={{ gap: 10 }}>
+        <span style={{ width: 10, height: 10, background: color, borderRadius: 2 }} />
+        <span style={{ fontSize: 13, fontWeight: 500 }}>{label}</span>
+        <div className="spacer" />
+        <span className="mono" style={{ fontSize: 12 }}>{pct}%</span>
+      </div>
+      <div className="mono" style={{ fontSize: 11, color: "var(--text-3)", marginLeft: 20, marginTop: 2 }}>{amount}% of sale</div>
+    </div>
+  );
+}
 
-  const handleMint = async () => {
-    if (!col || !activePhase) return;
-    if (!wallet.connected || !wallet.publicKey) {
-      setMintState({ stage: "error", message: "Connect your wallet first." });
-      return;
-    }
-    if (col.minted + mintQty > col.supply) {
-      setMintState({ stage: "error", message: "Not enough supply remaining." });
-      return;
-    }
-
-    try {
-      // 1. Ask the server to create a mint intent (computes expected amount,
-      //    returns a nonce + memo to bind our payment to this intent).
-      setMintState({ stage: "intent" });
-      const intentRes = await fetch("/api/mint/intent", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          slug,
-          buyerWallet: wallet.publicKey.toString(),
-          qty: mintQty,
-        }),
-      });
-      const intent = await intentRes.json();
-      if (!intentRes.ok) {
-        throw new Error(intent.error || `intent error ${intentRes.status}`);
-      }
-
-      // 2. Buyer signs ONE payment tx (transfers + memo).
-      setMintState({ stage: "paying", totalSol: intent.totalSol });
-      const payment = await sendPaymentForIntent(wallet, {
-        memo: intent.memo,
-        creatorRecipient: intent.creatorRecipient,
-        creatorAmountSol: intent.creatorAmountSol,
-        treasuryRecipient: intent.treasuryRecipient,
-        treasuryAmountSol: intent.treasuryAmountSol,
-      });
-
-      // 3. Server verifies + mints.
-      setMintState({
-        stage: "server-minting",
-        step: "Verifying payment and minting...",
-      });
-      const execRes = await fetch("/api/mint/execute", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          intentId: intent.intentId,
-          paymentSignature: payment.signature,
-        }),
-      });
-      const exec = await execRes.json();
-      if (!execRes.ok || !exec.ok) {
-        throw new Error(exec.error || `execute error ${execRes.status}`);
-      }
-
-      const addresses: string[] = exec.assetAddresses;
-
-      const newMinted = col.minted + mintQty;
-      setCol({
-        ...col,
-        minted: newMinted,
-        status: newMinted >= col.supply ? "finished" : col.status,
-      });
-      setMintState({ stage: "done", assetAddresses: addresses });
-    } catch (err) {
-      console.error(err);
-      const message = err instanceof Error ? err.message : "Unknown error";
-      setMintState({ stage: "error", message });
-    }
-  };
-
-  const isMintBusy =
-    mintState.stage === "intent" ||
-    mintState.stage === "paying" ||
-    mintState.stage === "server-minting";
+export default function CollectionPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = use(params);
+  const c = MOCK[slug] || Object.values(MOCK)[0];
+  const [qty, setQty] = useState(1);
+  const pct = c.supply ? (c.minted / c.supply) * 100 : 0;
 
   return (
-    <div className="pt-[72px] min-h-screen">
-      <div className="container-main py-[clamp(32px,4vw,56px)]">
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="flex items-center gap-2 text-[13px] mb-8"
-        >
-          <Link href="/launchpad" className="text-[#826D62] hover:text-[#A64C4F] transition-colors">
-            Launchpad
-          </Link>
-          <span className="text-[#8A8480]">/</span>
-          <span className="text-[#2F2B28] font-medium">{col.name}</span>
-        </motion.div>
+    <div className="page-content">
+      {/* Breadcrumb */}
+      <div className="hstack" style={{ marginBottom: 22, fontSize: 13, color: "var(--text-2)" }}>
+        <Link href="/launchpad" style={{ background: "none", border: "none", color: "var(--text-2)", cursor: "pointer", fontSize: 13, textDecoration: "none" }}>Launchpad</Link>
+        <I name="chevron-right" size={13} />
+        <span style={{ color: "var(--text)" }}>{c.name}</span>
+      </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_1fr] gap-8 lg:gap-12 mb-16">
-          {/* Left: image placeholder */}
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4 }}
-          >
-            <div className="aspect-square bg-[#2F2B28]/[0.03] border border-[#C4B99A] flex items-center justify-center overflow-hidden">
-              <span className="text-[120px] font-black text-[#2F2B28]/[0.04]">
-                {col.name
-                  .split(" ")
-                  .map((w) => w[0])
-                  .join("")
-                  .slice(0, 3)}
-              </span>
-            </div>
-          </motion.div>
-
-          {/* Right: mint panel */}
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.1 }}
-          >
-            <div className="flex items-center gap-3 mb-4 flex-wrap">
-              <span className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 ${
-                isMinting
-                  ? "bg-[#A64C4F] text-[#EDE3BC]"
-                  : "bg-[#C4B99A]/60 text-[#826D62]"
-              }`}>
-                {isMinting ? "Minting" : "Sold Out"}
-              </span>
-              <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 bg-[#2F2B28] text-[#EDE3BC]">
-                {col.network}
-              </span>
-              <a
-                href={explorerUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-[12px] text-[#826D62] hover:text-[#A64C4F] transition-colors font-mono"
-              >
-                {col.collectionAddress.slice(0, 6)}...{col.collectionAddress.slice(-4)} →
-              </a>
-            </div>
-
-            <h1 className="text-[clamp(28px,3.5vw,42px)] font-black text-[#2F2B28] leading-[1.05] mb-1">
-              {col.name}
-            </h1>
-            {col.tagline && (
-              <p className="text-[15px] text-[#A64C4F] font-medium mb-5">{col.tagline}</p>
-            )}
-
-            <div className="border border-[#C4B99A] p-5 mb-4">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-[13px] text-[#826D62]">Mint Progress</span>
-                <span className="text-[13px] font-mono font-bold text-[#2F2B28]">{mintPct}%</span>
+      <div className="rw-detail-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 40 }}>
+        {/* Left: gallery */}
+        <div>
+          <div className="card" style={{ padding: 0, overflow: "hidden" }}>
+            <RugTile v={c.v} glyph={c.name[0]} />
+          </div>
+          <div className="rw-gallery-thumbs" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginTop: 8 }}>
+            {[2, 3, 4, 5].map((v) => (
+              <div key={v} className="card" style={{ padding: 0, overflow: "hidden", cursor: "pointer" }}>
+                <RugTile v={v} />
               </div>
-              <div className="h-[6px] bg-[#2F2B28]/6 overflow-hidden mb-2">
-                <motion.div
-                  initial={{ width: 0 }}
-                  animate={{ width: `${mintPct}%` }}
-                  transition={{ duration: 0.8, ease: "easeOut" }}
-                  className="h-full bg-[#A64C4F]"
-                />
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-[12px] font-mono text-[#8A8480]">
-                  {col.minted.toLocaleString()} / {col.supply.toLocaleString()}
-                </span>
-                <span className="text-[12px] font-mono text-[#826D62]">
-                  {(col.supply - col.minted).toLocaleString()} remaining
-                </span>
-              </div>
-            </div>
-
-            <div className="space-y-2 mb-4">
-              <p className="text-[12px] font-mono text-[#826D62] uppercase tracking-wider mb-1">Mint Phases</p>
-              {col.phases.length === 0 ? (
-                <p className="text-[13px] text-[#826D62] italic p-4 border border-[#C4B99A]">
-                  No phases configured.
-                </p>
-              ) : (
-                col.phases.map((phase, i) => (
-                  <PhaseRow key={i} phase={phase} index={i} nowMs={nowMs} />
-                ))
-              )}
-            </div>
-
-            {isMinting && activePhase ? (
-              <div className="border border-[#A64C4F]/25 bg-[#A64C4F]/[0.02] p-5">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-[13px] font-semibold text-[#2F2B28]">
-                    {activePhase.name} · {activePhase.price} SOL
-                  </span>
-                  <span className="text-[11px] text-[#826D62]">{activeWalletLabel}</span>
-                </div>
-                <div className="flex items-center gap-3 mb-4">
-                  <button
-                    onClick={() => setMintQty(Math.max(1, mintQty - 1))}
-                    className="w-10 h-10 border border-[#C4B99A] flex items-center justify-center text-[#2F2B28] hover:border-[#A0937E] transition-colors text-[18px] font-medium"
-                  >
-                    -
-                  </button>
-                  <span className="text-[20px] font-bold text-[#2F2B28] w-12 text-center">{mintQty}</span>
-                  <button
-                    onClick={() =>
-                      setMintQty(
-                        activeMax === 0
-                          ? mintQty + 1
-                          : Math.min(activeMax, mintQty + 1)
-                      )
-                    }
-                    className="w-10 h-10 border border-[#C4B99A] flex items-center justify-center text-[#2F2B28] hover:border-[#A0937E] transition-colors text-[18px] font-medium"
-                  >
-                    +
-                  </button>
-                  <span className="text-[13px] text-[#826D62] ml-auto text-right">
-                    <span className="block">
-                      Mint: <span className="font-medium text-[#2F2B28]">{(activePrice * mintQty).toFixed(2)} SOL</span>
-                    </span>
-                    <span className="block text-[11px] text-[#8A8480]">
-                      + 2.5% fee + tiny upload buffer
-                    </span>
-                  </span>
-                </div>
-                <button
-                  onClick={handleMint}
-                  disabled={!wallet.connected || isMintBusy}
-                  className="w-full py-4 text-[15px] font-bold text-[#EDE3BC] bg-[#A64C4F] hover:bg-[#8a3d40] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  {mintState.stage === "intent"
-                    ? "Preparing intent..."
-                    : mintState.stage === "paying"
-                    ? `Waiting for payment (${mintState.totalSol.toFixed(4)} SOL)...`
-                    : mintState.stage === "server-minting"
-                    ? "Server minting NFTs..."
-                    : `Mint ${mintQty} · ~${(activePrice * mintQty * 1.025).toFixed(3)} SOL`}
-                </button>
-                <p className="text-[11px] text-[#8A8480] mt-2 leading-[1.4]">
-                  You sign one payment (mint price + 2.5% fee). Rug.World handles the upload and delivers the NFT to your wallet.
-                </p>
-                {!wallet.connected && (
-                  <p className="text-[11px] text-[#DEA831] mt-2">Connect your wallet to mint.</p>
-                )}
-
-                <AnimatePresence>
-                  {mintState.stage === "paying" && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0 }}
-                      className="mt-3 border border-[#A64C4F]/30 bg-[#A64C4F]/[0.04] p-3"
-                    >
-                      <div className="flex items-center gap-2">
-                        <span className="w-2 h-2 bg-[#A64C4F] animate-pulse" />
-                        <p className="text-[12px] text-[#2F2B28] font-medium">
-                          Approve the payment in your wallet
-                        </p>
-                      </div>
-                    </motion.div>
-                  )}
-
-                  {mintState.stage === "server-minting" && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0 }}
-                      className="mt-3 border border-[#A64C4F]/30 bg-[#A64C4F]/[0.04] p-3"
-                    >
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="w-2 h-2 bg-[#A64C4F] animate-pulse" />
-                        <p className="text-[12px] text-[#2F2B28] font-medium">
-                          {mintState.step}
-                        </p>
-                      </div>
-                      <p className="text-[10px] text-[#826D62]">
-                        Rug.World is uploading metadata and minting {mintQty} NFT{mintQty === 1 ? "" : "s"} to your wallet. No more wallet pop-ups needed.
-                      </p>
-                    </motion.div>
-                  )}
-
-                  {mintState.stage === "done" && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0 }}
-                      className="mt-3 border border-[#A64C4F]/30 bg-[#A64C4F]/[0.04] p-3"
-                    >
-                      <div className="flex items-center gap-2 mb-2">
-                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#A64C4F" strokeWidth="2.5">
-                          <path d="M3 7 L6 10 L11 4" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                        <span className="text-[13px] font-bold text-[#2F2B28]">
-                          Minted {mintState.assetAddresses.length} NFT{mintState.assetAddresses.length === 1 ? "" : "s"}
-                        </span>
-                      </div>
-                      <div className="space-y-1">
-                        {mintState.assetAddresses.map((addr) => (
-                          <a
-                            key={addr}
-                            href={accountExplorerUrl(addr)}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="block text-[10px] font-mono text-[#A64C4F] hover:underline truncate"
-                          >
-                            {addr.slice(0, 10)}...{addr.slice(-6)} →
-                          </a>
-                        ))}
-                      </div>
-                      <button
-                        onClick={() => setMintState({ stage: "idle" })}
-                        className="text-[11px] text-[#826D62] hover:text-[#A64C4F] mt-2"
-                      >
-                        Close
-                      </button>
-                    </motion.div>
-                  )}
-
-                  {mintState.stage === "error" && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0 }}
-                      className="mt-3 border border-[#A64C4F] bg-[#A64C4F]/[0.05] p-3"
-                    >
-                      <p className="text-[12px] font-semibold text-[#A64C4F] mb-1">Mint failed</p>
-                      <p className="text-[11px] text-[#826D62] break-words">{mintState.message}</p>
-                      <button
-                        onClick={() => setMintState({ stage: "idle" })}
-                        className="text-[11px] text-[#A64C4F] hover:underline mt-2"
-                      >
-                        Dismiss
-                      </button>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            ) : (
-              <div className="border border-[#C4B99A] bg-[#C4B99A]/20 p-5 text-center">
-                <p className="text-[15px] font-semibold text-[#826D62]">
-                  {isMinting ? "No active phase right now" : "Mint Complete"}
-                </p>
-                <p className="text-[12px] text-[#8A8480] mt-1">
-                  {isMinting
-                    ? "Check the phase schedule above."
-                    : "This collection is sold out. Check secondary markets."}
-                </p>
-              </div>
-            )}
-
-            <div className="border border-[#C4B99A] p-4 mt-4">
-              <p className="text-[11px] font-mono text-[#A64C4F] uppercase tracking-wider mb-3">
-                Royalty · {col.royaltyFee}%
-              </p>
-              <div className="flex h-7 overflow-hidden mb-2 text-[10px] font-bold">
-                <div
-                  className="bg-[#A64C4F] flex items-center justify-center text-[#EDE3BC]"
-                  style={{ width: `${col.holderShare}%` }}
-                >
-                  {stakerCut}%
-                </div>
-                {col.teamShare > 0 && (
-                  <div
-                    className="bg-[#2F2B28] flex items-center justify-center text-[#EDE3BC]"
-                    style={{ width: `${col.teamShare}%` }}
-                  >
-                    {(col.royaltyFee * col.teamShare) / 100}%
-                  </div>
-                )}
-              </div>
-              <div className="space-y-1 text-[11px]">
-                <div className="flex justify-between">
-                  <span className="flex items-center gap-2">
-                    <span className="w-2 h-2 bg-[#A64C4F]" />
-                    <span className="text-[#2F2B28] font-medium">Stakers</span>
-                  </span>
-                  <span className="font-mono text-[#A64C4F]">{stakerCut}%</span>
-                </div>
-                {col.teamShare > 0 && (
-                  <div className="flex justify-between">
-                    <span className="flex items-center gap-2">
-                      <span className="w-2 h-2 bg-[#2F2B28]" />
-                      <span className="text-[#826D62]">Team</span>
-                    </span>
-                    <span className="font-mono text-[#826D62]">
-                      {(col.royaltyFee * col.teamShare) / 100}%
-                    </span>
-                  </div>
-                )}
-              </div>
-            </div>
-          </motion.div>
+            ))}
+          </div>
         </div>
 
-        {/* About */}
-        {col.description && (
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.2 }}
-            className="mb-16"
-          >
-            <div className="border-b border-[#C4B99A] mb-6 pb-3">
-              <span className="text-[15px] font-semibold text-[#2F2B28]">About</span>
-            </div>
-            <p className="text-[clamp(15px,1.2vw,17px)] text-[#826D62] leading-[1.8] max-w-[720px]">
-              {col.description}
-            </p>
-          </motion.div>
-        )}
-
-        {/* On-chain details */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.25 }}
-          className="mb-16"
-        >
-          <div className="border-b border-[#C4B99A] mb-6 pb-3">
-            <span className="text-[15px] font-semibold text-[#2F2B28]">On-chain</span>
+        {/* Right: info */}
+        <div>
+          <div className="hstack" style={{ gap: 10, marginBottom: 10 }}>
+            <Avatar seed={c.creator} size={28} />
+            <span style={{ fontSize: 13, color: "var(--text-2)" }}>{c.creator}</span>
+            {c.verified && <I name="verified" size={14} />}
+            <div className="spacer" />
+            {c.status === "Live" ? <span className="pill live">Minting now</span> : c.status === "Ended" ? <span className="pill ended">Sold out</span> : <span className="pill upcoming">Upcoming</span>}
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 max-w-[960px]">
-            <div className="border border-[#C4B99A] p-4">
-              <span className="block text-[11px] text-[#826D62] uppercase tracking-wider mb-1">Network</span>
-              <span className="text-[14px] font-medium text-[#2F2B28] capitalize">{col.network}</span>
+          <h1 className="h-display" style={{ fontSize: 56 }}>{c.name}</h1>
+          <p style={{ marginTop: 18, color: "var(--text-2)", fontSize: 15, lineHeight: 1.65 }}>
+            {c.supply.toLocaleString()} hand-traited pieces on Solana, with {c.share}% of every secondary royalty flowing into the {c.name} staker vault.
+          </p>
+
+          {/* Info grid */}
+          <div className="rw-info-4" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 0, border: "1px solid var(--border)", borderRadius: 12, marginTop: 24, overflow: "hidden" }}>
+            {[
+              { label: "PRICE", value: `◎ ${c.price}` },
+              { label: "FLOOR", value: c.floor ? `◎ ${c.floor}` : "---" },
+              { label: "24H VOL", value: `◎ ${c.vol24.toFixed(1)}`, delta: `${c.chg > 0 ? "+" : ""}${c.chg}%`, deltaDown: c.chg < 0 },
+              { label: "STAKERS", value: c.stakers.toLocaleString(), last: true },
+            ].map((cell) => (
+              <div key={cell.label} style={{ padding: "18px 20px", borderRight: cell.last ? "none" : "1px solid var(--border)" }}>
+                <div className="text-micro mono">{cell.label}</div>
+                <div className="serif" style={{ fontSize: 22, marginTop: 6, letterSpacing: "-0.015em" }}>{cell.value}</div>
+                {cell.delta && <div className="mono" style={{ fontSize: 11, marginTop: 4, color: cell.deltaDown ? "var(--accent)" : "var(--success)" }}>{cell.delta}</div>}
+              </div>
+            ))}
+          </div>
+
+          {/* Mint widget */}
+          <div className="card pad-lg" style={{ marginTop: 20 }}>
+            <div className="hstack" style={{ justifyContent: "space-between" }}>
+              <div className="eyebrow">{c.status === "Ended" ? "Mint closed" : "Mint"}</div>
+              <div className="mono text-micro">{c.status === "Ended" ? "Phase: Secondary" : "Phase: Public"}</div>
             </div>
-            <div className="border border-[#C4B99A] p-4">
-              <span className="block text-[11px] text-[#826D62] uppercase tracking-wider mb-1">Supply</span>
-              <span className="text-[14px] font-medium text-[#2F2B28]">{col.supply.toLocaleString()}</span>
+            <div style={{ marginTop: 12, marginBottom: 10 }}>
+              <div className="progress"><span style={{ width: `${pct}%` }} /></div>
+              <div className="hstack" style={{ justifyContent: "space-between", marginTop: 8 }}>
+                <span className="mono" style={{ fontSize: 12 }}>{c.minted.toLocaleString()} / {c.supply.toLocaleString()} minted</span>
+                <span className="mono text-accent" style={{ fontSize: 12 }}>{pct.toFixed(1)}%</span>
+              </div>
             </div>
-            <div className="border border-[#C4B99A] p-4">
-              <span className="block text-[11px] text-[#826D62] uppercase tracking-wider mb-1">Pre-minted</span>
-              <span className="text-[14px] font-medium text-[#2F2B28]">{col.preMintCount.toLocaleString()}</span>
-            </div>
-            <div className="border border-[#C4B99A] p-4">
-              <span className="block text-[11px] text-[#826D62] uppercase tracking-wider mb-1">Launched</span>
-              <span className="text-[14px] font-medium text-[#2F2B28]">
-                {new Date(col.launchedAt).toLocaleDateString()}
-              </span>
+
+            {c.status === "Ended" ? (
+              <div style={{ marginTop: 20 }}>
+                <div style={{ padding: "22px 20px", borderRadius: 12, background: "var(--surface)", border: "1px dashed var(--border)", textAlign: "center" }}>
+                  <div className="serif" style={{ fontSize: 22, letterSpacing: "-0.01em" }}>Sold out</div>
+                  <div className="mono" style={{ fontSize: 11, color: "var(--text-3)", marginTop: 6, letterSpacing: "0.04em" }}>
+                    ALL {c.supply.toLocaleString()} PIECES MINTED
+                  </div>
+                </div>
+                <div className="hstack" style={{ gap: 10, marginTop: 12 }}>
+                  <button className="btn-primary lg" style={{ flex: 1 }}>
+                    <I name="sparkle" size={14} />Buy on secondary · floor ◎ {c.floor}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="hstack" style={{ gap: 10, marginTop: 20 }}>
+                <div className="hstack" style={{ border: "1px solid var(--border)", borderRadius: 10, padding: 2 }}>
+                  <button className="icon-btn" style={{ border: "none", background: "transparent", width: 36, height: 36 }} onClick={() => setQty(Math.max(1, qty - 1))}>
+                    <I name="x" size={12} />
+                  </button>
+                  <div className="mono" style={{ minWidth: 42, textAlign: "center" }}>{qty}</div>
+                  <button className="icon-btn" style={{ border: "none", background: "transparent", width: 36, height: 36 }} onClick={() => setQty(Math.min(10, qty + 1))}>
+                    <I name="plus" size={12} />
+                  </button>
+                </div>
+                <button className="btn-primary lg" style={{ flex: 1 }}>
+                  <I name="sparkle" size={14} />Mint {qty} for ◎ {(c.price * qty).toFixed(2)}
+                </button>
+              </div>
+            )}
+
+            <div style={{ marginTop: 16, padding: 14, borderRadius: 10, background: "var(--surface)", fontSize: 12, color: "var(--text-2)", lineHeight: 1.6 }}>
+              <div className="hstack" style={{ gap: 8, marginBottom: 6 }}>
+                <I name="shield" size={13} />
+                <span style={{ fontWeight: 600, color: "var(--text)" }}>Royalty share guarantee</span>
+              </div>
+              {c.share}% of every secondary royalty routes to stakers. Unstake any time, unclaimed rewards stay yours.
             </div>
           </div>
-        </motion.div>
 
-        <div className="border-t border-[#C4B99A] pt-6">
-          <Link
-            href="/launchpad"
-            className="text-[14px] text-[#A64C4F] hover:text-[#8a3d40] font-medium transition-colors"
-          >
-            ← Back to Launchpad
-          </Link>
+          {/* Social links */}
+          <div className="hstack" style={{ marginTop: 20, gap: 10, flexWrap: "wrap" }}>
+            <button className="chip-btn ghost"><I name="twitter" size={14} />Twitter</button>
+            <button className="chip-btn ghost"><I name="discord" size={14} />Discord</button>
+            <button className="chip-btn ghost"><I name="external" size={14} />Explorer</button>
+            <button className="chip-btn ghost"><I name="copy" size={14} />Gx4v...2p9L</button>
+          </div>
+        </div>
+      </div>
+
+      {/* Royalty info */}
+      <div style={{ marginTop: 48 }}>
+        <div className="card pad-lg">
+          <div className="eyebrow">Royalty split</div>
+          <h3 className="h2 serif" style={{ fontWeight: 400, marginTop: 8, marginBottom: 22 }}>{c.royalty}% on every trade</h3>
+          <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 36, alignItems: "center" }}>
+            <RoyaltyDonut share={c.share} />
+            <div>
+              <Split color="var(--accent)" label="Stakers" pct={c.share} amount={(c.royalty * c.share / 100).toFixed(1)} />
+              <Split color="var(--text-2)" label="Creator" pct={100 - c.share - 2} amount={(c.royalty * (100 - c.share - 2) / 100).toFixed(1)} />
+              <Split color="var(--text-3)" label="Rug.World" pct={2} amount={(c.royalty * 0.02).toFixed(2)} last />
+            </div>
+          </div>
+          <div style={{ marginTop: 22, padding: 14, background: "var(--surface)", borderRadius: 10, fontSize: 12.5, color: "var(--text-2)", lineHeight: 1.6 }}>
+            A trade at the current floor (◎ {c.floor || c.price}) pays ◎ {((c.floor || c.price) * c.royalty / 100).toFixed(3)} in royalty.
+            Stakers collectively earn ◎ {((c.floor || c.price) * c.royalty / 100 * c.share / 100).toFixed(3)} per sale.
+          </div>
+        </div>
+      </div>
+
+      {/* Project description */}
+      <div className="rw-desc-grid" style={{ marginTop: 56, display: "grid", gridTemplateColumns: "1fr 2fr", gap: 48, paddingTop: 48, borderTop: "1px solid var(--border)" }}>
+        <div>
+          <div className="eyebrow">About the project</div>
+          <h3 className="h2 serif" style={{ fontWeight: 400, marginTop: 10, fontSize: 32, lineHeight: 1.15 }}>
+            A living archive of {c.name.toLowerCase()}, reimagined on-chain.
+          </h3>
+          <div className="hstack" style={{ gap: 10, marginTop: 20, flexWrap: "wrap" }}>
+            {["GENERATIVE", "SOLANA", "ROYALTY-SHARED"].map((tag) => (
+              <div key={tag} style={{ padding: "6px 12px", border: "1px solid var(--border)", borderRadius: 999, fontSize: 11, fontFamily: "JetBrains Mono", color: "var(--text-2)", letterSpacing: "0.04em" }}>{tag}</div>
+            ))}
+          </div>
+        </div>
+        <div style={{ display: "grid", gap: 18, fontSize: 15, lineHeight: 1.75, color: "var(--text-2)" }}>
+          <p>
+            {c.name} is a collection of {c.supply.toLocaleString()} generative pieces that translate centuries of woven tradition into an on-chain archive. Every rug is assembled from a library of motifs, rendered as a single deterministic artwork minted directly on Solana.
+          </p>
+          <p>
+            The collection is the flagship drop from <strong style={{ color: "var(--text)" }}>{c.creator}</strong>, built in partnership with Rug.World. {c.royalty}% of every secondary trade is redistributed, with <strong className="text-accent">{c.share}%</strong> flowing back to holders who stake their piece into the collection vault.
+          </p>
+          <p>
+            Staking is non-custodial and reversible at any time. A staked piece continues to live in the holder's wallet; the pool simply indexes it as an eligible receiver of pro-rata royalty flow. Rewards accrue continuously and can be claimed or compounded.
+          </p>
         </div>
       </div>
     </div>
