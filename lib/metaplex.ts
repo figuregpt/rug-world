@@ -48,8 +48,8 @@ import type { WalletContextState } from "@solana/wallet-adapter-react";
 
 export const DEVNET_RPC = "https://api.devnet.solana.com";
 
-// Rug.World treasury wallet that receives launch + marketplace fees.
-export const RUG_WORLD_TREASURY = "A5rBeqfX7rYfxvCyGyikPNXbozCfHYwBSVHzZfD2hrJa";
+// Campfire treasury wallet that receives launch + marketplace fees.
+export const CAMPFIRE_TREASURY = "A5rBeqfX7rYfxvCyGyikPNXbozCfHYwBSVHzZfD2hrJa";
 
 // Operator wallet (the server's signer). Exposed via NEXT_PUBLIC_OPERATOR_PUBKEY
 // so the client can set it as admin during launch — required for the server to
@@ -76,7 +76,7 @@ export type LaunchParams = {
   name: string;
   uri: string;
   stakersVault: string; // wallet receiving 10% royalty (for now, creator itself)
-  adminAuthority?: string; // rug.world admin wallet, defaults to creator
+  adminAuthority?: string; // campfire admin wallet, defaults to creator
 };
 
 export type LaunchResult = {
@@ -86,10 +86,10 @@ export type LaunchResult = {
 
 /**
  * Launch a collection:
- * 1) Transfer the 1 SOL launch fee to the Rug.World treasury
+ * 1) Transfer the 1 SOL launch fee to the Campfire treasury
  * 2) Create a Metaplex Core collection with:
  *    - Royalties plugin (10%) pointing to the stakers vault
- *    - UpdateDelegate plugin (admin authority) so Rug.World can modify
+ *    - UpdateDelegate plugin (admin authority) so Campfire can modify
  *      mint-phase metadata mid-launch.
  *
  * We do NOT attach PermanentFreezeDelegate to the collection because a
@@ -97,7 +97,7 @@ export type LaunchResult = {
  * creates under that collection (mpl-core 0x1a: "Neither the asset or any
  * plugins have approved this operation"). Instead we attach a per-asset
  * FreezeDelegate at mint time with the admin wallet as authority, which
- * lets Rug.World freeze/unfreeze individual assets for staking later.
+ * lets Campfire freeze/unfreeze individual assets for staking later.
  */
 export async function launchCollection(
   wallet: WalletContextState,
@@ -116,7 +116,7 @@ export async function launchCollection(
   if (LAUNCH_FEE_SOL > 0) {
     builder = builder.add(
       transferSol(umi, {
-        destination: publicKey(RUG_WORLD_TREASURY),
+        destination: publicKey(CAMPFIRE_TREASURY),
         amount: sol(LAUNCH_FEE_SOL),
       })
     );
@@ -299,7 +299,7 @@ export async function bulkPreMint(
  * Lazy mint: buyer pays mint price + marketplace fee, a single NFT is minted to them.
  * Runs in one transaction:
  *   1) transfer mint price to creator wallet
- *   2) transfer marketplace fee (2.5% of price) to Rug.World treasury
+ *   2) transfer marketplace fee (2.5% of price) to Campfire treasury
  *   3) create asset under the collection, owned by buyer, frozen
  */
 export async function lazyMintToBuyer(
@@ -340,7 +340,7 @@ export async function lazyMintToBuyer(
   if (marketplaceCut > 0) {
     builder = builder.add(
       transferSol(umi, {
-        destination: publicKey(RUG_WORLD_TREASURY),
+        destination: publicKey(CAMPFIRE_TREASURY),
         amount: sol(marketplaceCut),
       })
     );

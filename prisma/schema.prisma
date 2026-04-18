@@ -1,4 +1,4 @@
-// Rug.World backend schema.
+// Campfire backend schema.
 // SQLite for dev. Swap datasource to postgresql for production.
 
 generator client {
@@ -96,7 +96,7 @@ model MintIntent {
   priceSol           String              // phase price at intent-creation time
   expectedLamports   BigInt              // mint price + 2.5% fee + upload buffer
   creatorRecipient   String              // creator wallet (receives mint price - fee)
-  treasuryRecipient  String              // Rug.World treasury (receives fee + buffer)
+  treasuryRecipient  String              // Campfire treasury (receives fee + buffer)
   phaseName          String?
   nonce              String              @unique
   memo               String              @unique // intent id baked into memo text; server matches against tx logs

@@ -170,7 +170,7 @@ export default function AdminPage({ params }: { params: Promise<{ slug: string }
               Admin Controls
             </h1>
             <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 bg-[#A64C4F] text-[#EDE3BC]">
-              Rug.World team only
+              Campfire team only
             </span>
           </div>
           <p className="text-[clamp(14px,1.1vw,16px)] text-[#826D62] max-w-[640px]">
@@ -353,7 +353,7 @@ export default function AdminPage({ params }: { params: Promise<{ slug: string }
             <div className="border border-[#A64C4F]/25 bg-[#A64C4F]/[0.03] p-4">
               <p className="text-[12px] font-semibold text-[#2F2B28] mb-2">Restricted access</p>
               <p className="text-[11px] text-[#826D62] leading-[1.5]">
-                This page is only accessible to Rug.World team members. Collection creators cannot modify their launch parameters directly to prevent mid-flight rug pulls.
+                This page is only accessible to Campfire team members. Collection creators cannot modify their launch parameters directly to prevent mid-flight rug pulls.
               </p>
             </div>
 

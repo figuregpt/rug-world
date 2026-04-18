@@ -61,7 +61,7 @@ export default function RugNav() {
             {/* Logo */}
             <Link href="/" className="flex items-center gap-1">
               <span className="text-[22px] font-black text-[#EDE3BC] tracking-tight">
-                RUG<span className="text-[#A64C4F]">.</span>WORLD
+                CAMPFIRE
               </span>
             </Link>
 

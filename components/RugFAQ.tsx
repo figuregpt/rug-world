@@ -5,20 +5,20 @@ import { motion, useInView, AnimatePresence } from "framer-motion";
 
 const faqs = [
   {
-    q: "What is Rug World?",
-    a: "Rug World is a curated NFT launchpad on Solana with a built-in royalty share model. Only approved collections can launch here. We recommend a 10% royalty on every secondary sale. 8% goes to stakers, 2% goes to the team.",
+    q: "What is Campfire?",
+    a: "Campfire is a curated NFT launchpad on Solana with a built-in royalty share model. Only approved collections can launch here. We recommend a 10% royalty on every secondary sale. 8% goes to stakers, 2% goes to the team.",
   },
   {
     q: "How does royalty sharing work?",
-    a: "When an NFT from a Rug World collection is sold on the secondary market, a 10% royalty kicks in. 8% of that goes directly to stakers of that collection. The remaining 2% goes to the collection team. Stake your NFT and you earn from every trade.",
+    a: "When an NFT from a Campfire collection is sold on the secondary market, a 10% royalty kicks in. 8% of that goes directly to stakers of that collection. The remaining 2% goes to the collection team. Stake your NFT and you earn from every trade.",
   },
   {
     q: "What is a CTO (Community Takeover)?",
-    a: "If a collection's original team abandons the project, anyone can step up and take over. Contact the Rug.World team, present your plan, and if approved you become the new lead. The art stays, the community stays, royalties keep flowing. Just with fresh leadership.",
+    a: "If a collection's original team abandons the project, anyone can step up and take over. Contact the Campfire team, present your plan, and if approved you become the new lead. The art stays, the community stays, royalties keep flowing. Just with fresh leadership.",
   },
   {
     q: "Can anyone launch a collection?",
-    a: "Yes. Rug World is permissionless. Head to Create, set up your collection, pick your royalty split between community and yourself, and deploy. You decide the terms.",
+    a: "Yes. Campfire is permissionless. Head to Create, set up your collection, pick your royalty split between community and yourself, and deploy. You decide the terms.",
   },
   {
     q: "How does the art generator work?",
@@ -33,11 +33,11 @@ const faqs = [
     a: "Head to the staking page, connect your wallet, and select the collection you want to stake from. Each collection has its own staking pool. Stake your NFT and start earning from secondary sales.",
   },
   {
-    q: "What does BOIS have to do with Rug World?",
-    a: "BOIS holders benefit from every collection on Rug.World. There's a platform cut on every secondary sale across all collections, and a portion of that goes to BOIS holders. The more collections launch and trade, the more BOIS holders earn.",
+    q: "What does BOIS have to do with Campfire?",
+    a: "BOIS holders benefit from every collection on Campfire. There's a platform cut on every secondary sale across all collections, and a portion of that goes to BOIS holders. The more collections launch and trade, the more BOIS holders earn.",
   },
   {
-    q: "What chain is Rug World on?",
+    q: "What chain is Campfire on?",
     a: "Solana.",
   },
   {
@@ -99,7 +99,7 @@ export default function RugFAQ() {
           >
             <h2 className="section-title">FAQ</h2>
             <p className="mt-4 text-[15px] text-[#826D62] leading-relaxed max-w-[280px]">
-              Everything you need to know about Rug World.
+              Everything you need to know about Campfire.
             </p>
           </motion.div>
 

@@ -14,7 +14,7 @@ const CREATOR_FEE_BPS = 250;
 // the operator wallet (Irys uploads, network fees, etc.)
 const UPLOAD_BUFFER_PER_MINT_SOL = 0.004;
 const INTENT_TTL_MS = 5 * 60 * 1000; // 5 min
-const RUG_WORLD_TREASURY = "A5rBeqfX7rYfxvCyGyikPNXbozCfHYwBSVHzZfD2hrJa";
+const CAMPFIRE_TREASURY = "A5rBeqfX7rYfxvCyGyikPNXbozCfHYwBSVHzZfD2hrJa";
 
 const MAX_QTY_PER_INTENT = 10;
 
@@ -147,7 +147,7 @@ export async function POST(req: Request) {
     const expectedLamports = BigInt(Math.floor(totalSol * LAMPORTS_PER_SOL));
 
     const nonce = randomBytes(16).toString("hex");
-    const memo = `rugworld:mint:${nonce}`;
+    const memo = `campfire:mint:${nonce}`;
     const expiresAt = new Date(now + INTENT_TTL_MS);
 
     const intent = await prisma.mintIntent.create({
@@ -158,7 +158,7 @@ export async function POST(req: Request) {
         priceSol: activePhase.price,
         expectedLamports,
         creatorRecipient: col.creatorWallet,
-        treasuryRecipient: RUG_WORLD_TREASURY,
+        treasuryRecipient: CAMPFIRE_TREASURY,
         phaseName: activePhase.name,
         nonce,
         memo,
@@ -172,7 +172,7 @@ export async function POST(req: Request) {
       memo,
       creatorRecipient: col.creatorWallet,
       creatorAmountSol: +toCreatorSol.toFixed(6),
-      treasuryRecipient: RUG_WORLD_TREASURY,
+      treasuryRecipient: CAMPFIRE_TREASURY,
       treasuryAmountSol: +toTreasurySol.toFixed(6),
       totalSol: +totalSol.toFixed(6),
       expiresAt: expiresAt.toISOString(),

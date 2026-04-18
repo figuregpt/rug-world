@@ -80,8 +80,8 @@ export default function Shell({ children }: { children: ReactNode }) {
       {/* Sidebar */}
       <aside className="sidebar">
         <Link href="/" className="brand" onClick={() => setMobileOpen(false)}>
-          <div className="brand-mark">R</div>
-          {!collapsed && <span>RUG<span className="dot">.</span>WORLD</span>}
+          <div className="brand-mark">C</div>
+          {!collapsed && <span>CAMPFIRE</span>}
         </Link>
 
         {navSections.map((section) => (

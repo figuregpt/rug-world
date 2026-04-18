@@ -4,7 +4,7 @@
 // of a few hundred NFTs once images are base64-encoded. IndexedDB allows
 // hundreds of MB (depending on the browser) and handles binary data cleanly.
 
-const DB_NAME = "rugworld";
+const DB_NAME = "campfire";
 const DB_VERSION = 1;
 const STORE = "drafts";
 
@@ -58,4 +58,4 @@ export async function idbDelete(key: string): Promise<void> {
   });
 }
 
-export const DRAFT_ASSETS_KEY = "rugworld:generated";
+export const DRAFT_ASSETS_KEY = "campfire:generated";

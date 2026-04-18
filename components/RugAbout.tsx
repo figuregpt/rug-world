@@ -48,7 +48,7 @@ export default function RugAbout() {
             transition={{ duration: 0.6, delay: 0.15 }}
           >
             <p className="text-[13px] text-[#A64C4F] tracking-[0.15em] uppercase mb-6">
-              Why Rug World
+              Why Campfire
             </p>
 
             <h2 className="text-[clamp(28px,3vw,42px)] font-bold text-[#EDE3BC] leading-[1.2] mb-8">
@@ -60,10 +60,10 @@ export default function RugAbout() {
                 The royalty model is broken. Creators collect fees on every secondary sale while holders, the ones who actually keep the community alive, get nothing.
               </p>
               <p>
-                Rug World flips that. We built a launchpad where royalties from secondary sales flow directly to stakers. You hold, you stake, you earn. Every single trade puts money back in the community's pocket.
+                Campfire flips that. We built a launchpad where royalties from secondary sales flow directly to stakers. You hold, you stake, you earn. Every single trade puts money back in the community's pocket.
               </p>
               <p>
-                Launch your own collection. Use our built-in art generator to produce thousands of unique NFTs from your traits. Set your own royalty split. Every collection that launches on Rug World inherits the royalty share system out of the box.
+                Launch your own collection. Use our built-in art generator to produce thousands of unique NFTs from your traits. Set your own royalty split. Every collection that launches on Campfire inherits the royalty share system out of the box.
               </p>
             </div>
 

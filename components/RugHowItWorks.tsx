@@ -7,7 +7,7 @@ const steps = [
   {
     num: "01",
     title: "Curated Launch",
-    desc: "Only approved collections drop on Rug World. Each project is vetted by our team before it hits the launchpad. No random mints, no rugs.",
+    desc: "Only approved collections drop on Campfire. Each project is vetted by our team before it hits the launchpad. No random mints, no rugs.",
   },
   {
     num: "02",
@@ -51,7 +51,7 @@ export default function RugHowItWorks() {
                 From launch to earning.<br />Four steps.
               </h2>
               <p className="text-[clamp(15px,1.2vw,17px)] text-[#826D62] leading-[1.7] max-w-[440px]">
-                Rug World makes it dead simple. We handle the curation, you handle the staking. Royalties flow automatically, every time someone trades.
+                Campfire makes it dead simple. We handle the curation, you handle the staking. Royalties flow automatically, every time someone trades.
               </p>
             </div>
           </div>

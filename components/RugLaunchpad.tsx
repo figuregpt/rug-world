@@ -55,7 +55,7 @@ export default function RugLaunchpad() {
                 Curated drops only.
               </h2>
               <p className="text-[clamp(15px,1.2vw,17px)] text-[#EDE3BC]/40 leading-[1.7] max-w-[440px]">
-                Every collection on Rug World is hand-picked. We partner with artists and teams that share our vision. No open mints, no anonymous drops. Quality over quantity.
+                Every collection on Campfire is hand-picked. We partner with artists and teams that share our vision. No open mints, no anonymous drops. Quality over quantity.
               </p>
             </div>
           </div>

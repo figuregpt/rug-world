@@ -38,19 +38,19 @@ export type Collection = {
 };
 
 /**
- * Platform-level royalty cut from EVERY collection on Rug.World.
+ * Platform-level royalty cut from EVERY collection on Campfire.
  * This is 1% of every secondary sale, split evenly:
  *  - 0.5% to BOIS holders
- *  - 0.5% to Rug.World team
+ *  - 0.5% to Campfire team
  *
  * This is ON TOP of the collection's own royalty fee.
  * Example: Collection has 10% royalty fee.
- *  - 1% goes to Rug.World platform (0.5% BOIS + 0.5% team)
+ *  - 1% goes to Campfire platform (0.5% BOIS + 0.5% team)
  *  - 9% is split between collection stakers and collection team per holderShare/teamShare
  */
 export const PLATFORM_CUT = 1; // 1% of every sale
 export const BOIS_CUT = 0.5;   // 0.5% to BOIS holders
-export const RW_TEAM_CUT = 0.5; // 0.5% to Rug.World team
+export const RW_TEAM_CUT = 0.5; // 0.5% to Campfire team
 
 export const collections: Collection[] = [
   {
@@ -72,7 +72,7 @@ export const collections: Collection[] = [
       { name: "Public", price: "0.5 SOL", maxPerWallet: 10, supply: "Remaining", status: "active", startDate: "2026-04-10" },
     ],
     roadmap: [
-      { quarter: "Q2 2026", title: "Launch & Mint", description: "Shadow Ronin collection goes live on Rug World. OG, WL, and Public phases.", done: true },
+      { quarter: "Q2 2026", title: "Launch & Mint", description: "Shadow Ronin collection goes live on Campfire. OG, WL, and Public phases.", done: true },
       { quarter: "Q2 2026", title: "Staking Goes Live", description: "Staking pool opens. Holders start earning royalties from secondary sales.", done: false },
       { quarter: "Q3 2026", title: "Lore Chapters", description: "First lore drop -interactive story chapters driven by holder votes.", done: false },
       { quarter: "Q4 2026", title: "Merch & IRL", description: "Physical merch line and IRL events for holders.", done: false },
@@ -98,7 +98,7 @@ export const collections: Collection[] = [
       { name: "Public", price: "0.8 SOL", maxPerWallet: 5, supply: "Remaining", status: "upcoming", startDate: "2026-04-16" },
     ],
     roadmap: [
-      { quarter: "Q2 2026", title: "Mint Launch", description: "Pixel Samurai drops on Rug World with 3-phase mint.", done: true },
+      { quarter: "Q2 2026", title: "Mint Launch", description: "Pixel Samurai drops on Campfire with 3-phase mint.", done: true },
       { quarter: "Q2 2026", title: "Staking Activation", description: "Staking pool goes live after mint completes.", done: false },
       { quarter: "Q3 2026", title: "Pixel Battles", description: "PvP battle system where samurai traits determine outcomes.", done: false },
       { quarter: "Q4 2026", title: "Expansion Pack", description: "New trait drops and crossover collaborations.", done: false },
@@ -124,7 +124,7 @@ export const collections: Collection[] = [
       { name: "Public", price: "0.25 SOL", maxPerWallet: 20, supply: "Remaining", status: "active", startDate: "2026-04-12" },
     ],
     roadmap: [
-      { quarter: "Q2 2026", title: "Genesis Drop", description: "10,000 Neon Drifters hit the streets of Rug World.", done: true },
+      { quarter: "Q2 2026", title: "Genesis Drop", description: "10,000 Neon Drifters hit the streets of Campfire.", done: true },
       { quarter: "Q3 2026", title: "The Garage", description: "NFT customization system -modify your drifter's ride.", done: false },
       { quarter: "Q3 2026", title: "Race Leagues", description: "Competitive racing leagues with SOL prize pools.", done: false },
       { quarter: "Q4 2026", title: "Neon City", description: "Virtual world for Drifter holders to explore and earn.", done: false },
@@ -153,7 +153,7 @@ export const collections: Collection[] = [
       { quarter: "Q1 2026", title: "Void Opens", description: "2,222 Void Walkers emerge from the void. Sold out in 4 hours.", done: true },
       { quarter: "Q2 2026", title: "Staking Live", description: "Void Walker staking pool is active. Holders earning royalties.", done: true },
       { quarter: "Q3 2026", title: "Void Expeditions", description: "Holders send their Walkers on expeditions for bonus rewards.", done: false },
-      { quarter: "Q4 2026", title: "Dimension Rift", description: "Cross-collection event with other Rug World collections.", done: false },
+      { quarter: "Q4 2026", title: "Dimension Rift", description: "Cross-collection event with other Campfire collections.", done: false },
     ],
     socials: { twitter: "https://x.com/", discord: "https://discord.gg/" },
   },
@@ -188,7 +188,7 @@ export const collections: Collection[] = [
     name: "Crystal Punks",
     tagline: "Forged in crystal. Built to last.",
     description:
-      "Crystal Punks is a 4,444 piece collection of crystalline humanoids, each formed from unique mineral combinations found deep within the blockchain. The art merges geological beauty with punk aesthetics, creating characters that are both raw and refined. Crystal Punks was the first sold-out collection on Rug World.",
+      "Crystal Punks is a 4,444 piece collection of crystalline humanoids, each formed from unique mineral combinations found deep within the blockchain. The art merges geological beauty with punk aesthetics, creating characters that are both raw and refined. Crystal Punks was the first sold-out collection on Campfire.",
     images: ["/collections/cp-1.png", "/collections/cp-2.png", "/collections/cp-3.png", "/collections/cp-4.png"],
     supply: 4444,
     minted: 4444,
@@ -202,7 +202,7 @@ export const collections: Collection[] = [
       { name: "Public", price: "0.6 SOL", maxPerWallet: 8, supply: "Remaining", status: "ended", startDate: "2026-01-25" },
     ],
     roadmap: [
-      { quarter: "Q1 2026", title: "Crystal Genesis", description: "4,444 Crystal Punks forged. First Rug World sold-out.", done: true },
+      { quarter: "Q1 2026", title: "Crystal Genesis", description: "4,444 Crystal Punks forged. First Campfire sold-out.", done: true },
       { quarter: "Q1 2026", title: "Staking Activated", description: "Staking pool live since day 1. Holders earning royalties.", done: true },
       { quarter: "Q2 2026", title: "Crystal Forge", description: "Combine crystals to upgrade traits and rarity.", done: true },
       { quarter: "Q3 2026", title: "Crystal Wars", description: "PvP system with crystal-based powers.", done: false },
@@ -215,7 +215,7 @@ export const collections: Collection[] = [
     name: "Ghost Protocol",
     tagline: "They vanished. The art remains.",
     description:
-      "Ghost Protocol was a 3,000 piece collection that launched strong but was abandoned by its original team after mint. The art is solid, the community is still here, and the collection is now available for Community Takeover. If you want to take the lead and revive Ghost Protocol, reach out to the Rug World team.",
+      "Ghost Protocol was a 3,000 piece collection that launched strong but was abandoned by its original team after mint. The art is solid, the community is still here, and the collection is now available for Community Takeover. If you want to take the lead and revive Ghost Protocol, reach out to the Campfire team.",
     images: ["/collections/gp-1.png", "/collections/gp-2.png", "/collections/gp-3.png", "/collections/gp-4.png"],
     supply: 3000,
     minted: 3000,
@@ -229,7 +229,7 @@ export const collections: Collection[] = [
       { name: "Public", price: "0.5 SOL", maxPerWallet: 10, supply: "Remaining", status: "ended", startDate: "2026-01-12" },
     ],
     roadmap: [
-      { quarter: "Q1 2026", title: "Launch", description: "3,000 Ghosts minted. Collection launched on Rug World.", done: true },
+      { quarter: "Q1 2026", title: "Launch", description: "3,000 Ghosts minted. Collection launched on Campfire.", done: true },
       { quarter: "Q1 2026", title: "Team Goes Silent", description: "Original team stopped responding. Community left hanging.", done: true },
       { quarter: "TBD", title: "Awaiting CTO", description: "Collection is available for Community Takeover. New leadership wanted.", done: false },
     ],
@@ -255,7 +255,7 @@ export const collections: Collection[] = [
     roadmap: [
       { quarter: "Q4 2025", title: "Mint", description: "2,000 Dead Pixels minted in a single public phase.", done: true },
       { quarter: "Q1 2026", title: "Project Stalled", description: "Solo artist couldn't sustain. Project needs new leadership.", done: true },
-      { quarter: "TBD", title: "Awaiting CTO", description: "Open for Community Takeover. Contact Rug World team to claim.", done: false },
+      { quarter: "TBD", title: "Awaiting CTO", description: "Open for Community Takeover. Contact Campfire team to claim.", done: false },
     ],
     socials: {},
   },

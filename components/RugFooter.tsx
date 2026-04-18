@@ -37,7 +37,7 @@ export default function RugFooter() {
             {/* Brand */}
             <div>
               <h2 className="text-[clamp(40px,5vw,64px)] font-black text-[#EDE3BC] leading-none">
-                RUG<span className="text-[#A64C4F]">.</span>WORLD
+                CAMPFIRE
               </h2>
               <p className="mt-3 text-[14px] text-[#EDE3BC]/30">
                 The launchpad that pays holders.
@@ -79,7 +79,7 @@ export default function RugFooter() {
         {/* Bottom bar */}
         <div className="border-t border-[#EDE3BC]/8">
           <div className="container-main py-5 flex items-center justify-between">
-            <p className="text-[13px] text-[#EDE3BC]/20">&copy; 2026 Rug World</p>
+            <p className="text-[13px] text-[#EDE3BC]/20">&copy; 2026 Campfire</p>
             <p className="text-[13px] text-[#EDE3BC]/20">All rights reserved</p>
           </div>
         </div>

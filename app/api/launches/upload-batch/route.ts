@@ -33,7 +33,7 @@ function decodeBase64Image(src: string): Uint8Array {
  * Client-side Irys would need the creator wallet to sign every single upload,
  * so a 5000-piece collection would require 5000 signatures. Moving the upload
  * to the backend means the creator signs nothing for uploads; the operator
- * wallet (funded by Rug.World + the per-mint upload buffer) pays the Irys
+ * wallet (funded by Campfire + the per-mint upload buffer) pays the Irys
  * fee directly.
  *
  * Batch size should stay small (5-10) to keep request bodies under the
@@ -67,7 +67,7 @@ export async function POST(req: Request) {
         name: item.name,
         description: item.description,
         attributes: item.attributes,
-        externalUrl: "https://rug.world",
+        externalUrl: "https://campfire.world",
       });
       results.push({
         imageUri: uploaded.imageUri,

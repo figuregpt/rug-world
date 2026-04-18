@@ -162,7 +162,7 @@ export default function LaunchpadPage() {
             <div className="eyebrow">Launchpad</div>
             <h1 className="h1 serif" style={{ fontWeight: 400, marginTop: 8, fontSize: 44 }}>Discover curated drops</h1>
             <p className="text-muted" style={{ marginTop: 10, maxWidth: 560, lineHeight: 1.6, fontSize: 15 }}>
-              Every collection on Rug.World inherits the royalty-share vault. Hold, stake, earn across every drop below.
+              Every collection on Campfire inherits the royalty-share vault. Hold, stake, earn across every drop below.
             </p>
           </div>
 

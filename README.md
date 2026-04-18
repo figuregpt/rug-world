@@ -1,4 +1,4 @@
-# Rug World
+# Campfire
 
 Permissionless NFT launchpad on Solana with a built-in art generator, lazy mint, and royalty-share staking.
 
@@ -75,7 +75,7 @@ See `app/api/mint/route.ts` for the request shape.
 - `app/api/mint/route.ts` - the mint endpoint
 - `app/create/page.tsx` - launch flow
 - `app/launchpad/[slug]/page.tsx` - buyer mint page
-- `app/launchpad/[slug]/admin/page.tsx` - Rug.World admin panel (adjust supply, phases, prices mid-flight)
+- `app/launchpad/[slug]/admin/page.tsx` - Campfire admin panel (adjust supply, phases, prices mid-flight)
 
 ## Roadmap
 

@@ -211,7 +211,7 @@ export default function CollectionPage({ params }: { params: Promise<{ slug: str
             <div>
               <Split color="var(--accent)" label="Stakers" pct={c.share} amount={(c.royalty * c.share / 100).toFixed(1)} />
               <Split color="var(--text-2)" label="Creator" pct={100 - c.share - 2} amount={(c.royalty * (100 - c.share - 2) / 100).toFixed(1)} />
-              <Split color="var(--text-3)" label="Rug.World" pct={2} amount={(c.royalty * 0.02).toFixed(2)} last />
+              <Split color="var(--text-3)" label="Campfire" pct={2} amount={(c.royalty * 0.02).toFixed(2)} last />
             </div>
           </div>
           <div style={{ marginTop: 22, padding: 14, background: "var(--surface)", borderRadius: 10, fontSize: 12.5, color: "var(--text-2)", lineHeight: 1.6 }}>
@@ -239,7 +239,7 @@ export default function CollectionPage({ params }: { params: Promise<{ slug: str
             {c.name} is a collection of {c.supply.toLocaleString()} generative pieces that translate centuries of woven tradition into an on-chain archive. Every rug is assembled from a library of motifs, rendered as a single deterministic artwork minted directly on Solana.
           </p>
           <p>
-            The collection is the flagship drop from <strong style={{ color: "var(--text)" }}>{c.creator}</strong>, built in partnership with Rug.World. {c.royalty}% of every secondary trade is redistributed, with <strong className="text-accent">{c.share}%</strong> flowing back to holders who stake their piece into the collection vault.
+            The collection is the flagship drop from <strong style={{ color: "var(--text)" }}>{c.creator}</strong>, built in partnership with Campfire. {c.royalty}% of every secondary trade is redistributed, with <strong className="text-accent">{c.share}%</strong> flowing back to holders who stake their piece into the collection vault.
           </p>
           <p>
             Staking is non-custodial and reversible at any time. A staked piece continues to live in the holder's wallet; the pool simply indexes it as an eligible receiver of pro-rata royalty flow. Rewards accrue continuously and can be claimed or compounded.

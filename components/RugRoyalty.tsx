@@ -159,7 +159,7 @@ export default function RugRoyalty() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {[
                 { icon: "01", title: "Project Gets Abandoned", desc: "Original team goes silent. Community is left without leadership." },
-                { icon: "02", title: "You Step Up", desc: "Contact Rug.World team. Show your plan for the collection." },
+                { icon: "02", title: "You Step Up", desc: "Contact Campfire team. Show your plan for the collection." },
                 { icon: "03", title: "CTO Approved", desc: "Take over as new lead. Staking, royalties, everything keeps running." },
               ].map((item, i) => (
                 <motion.div

@@ -1,7 +1,7 @@
 // Persist real, on-chain launched collections to localStorage.
 // Replaces the mock data in lib/collections.ts for the launchpad + stake pages.
 //
-// Until we have a backend, this is per-browser only. The Rug.World admin
+// Until we have a backend, this is per-browser only. The Campfire admin
 // panel will eventually read from a server-side index instead.
 
 export type LaunchedPhase = {
@@ -45,7 +45,7 @@ export type LaunchedCollection = {
   launchedAt: string;
 };
 
-const STORE_KEY = "rugworld:launched";
+const STORE_KEY = "campfire:launched";
 
 function safeParse<T>(raw: string | null, fallback: T): T {
   if (!raw) return fallback;

@@ -96,7 +96,7 @@ function Step4() {
     <>
       <div className="h2 serif" style={{ fontWeight: 400, marginBottom: 18 }}>Royalty split</div>
       <Field label="Total royalty on secondary sales"><TextInput defaultValue="10%" /></Field>
-      <Field label={`Stakers receive ${share}%`} hint="The rest goes to the creator. Rug.World keeps 2% platform fee.">
+      <Field label={`Stakers receive ${share}%`} hint="The rest goes to the creator. Campfire keeps 2% platform fee.">
         <input type="range" min={0} max={98} value={share} onChange={(e) => setShare(+e.target.value)} style={{ width: "100%", accentColor: "var(--accent)" }} />
         <div className="hstack" style={{ justifyContent: "space-between", fontSize: 12, color: "var(--text-2)", marginTop: 10 }}>
           <span><span style={{ width: 10, height: 10, background: "var(--accent)", display: "inline-block", marginRight: 6, borderRadius: 2 }} />Stakers {share}%</span>

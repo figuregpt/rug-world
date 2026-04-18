@@ -164,7 +164,7 @@ export default function StudioPage() {
   // ── Launch ──
   const handleLaunch = async () => {
     if (!colName.trim() || !wallet.publicKey) return;
-    localStorage.setItem("rugworld:collection", JSON.stringify({ name: colName, tagline: "", description: "", supply: generated.length, generatedCount: generated.filter((g) => !g.isOneOfOne).length, oneOfOneCount: generated.filter((g) => g.isOneOfOne).length, layerCount: layers.length, traitCount: totalTraits, draftOwner: wallet.publicKey.toString(), createdAt: new Date().toISOString() }));
+    localStorage.setItem("campfire:collection", JSON.stringify({ name: colName, tagline: "", description: "", supply: generated.length, generatedCount: generated.filter((g) => !g.isOneOfOne).length, oneOfOneCount: generated.filter((g) => g.isOneOfOne).length, layerCount: layers.length, traitCount: totalTraits, draftOwner: wallet.publicKey.toString(), createdAt: new Date().toISOString() }));
     const { idbSet, DRAFT_ASSETS_KEY } = await import("@/lib/draft-store");
     await idbSet(DRAFT_ASSETS_KEY, generated.map((nft) => ({ tokenId: nft.tokenId, dna: nft.dna, isOneOfOne: nft.isOneOfOne || false, customImage: nft.customImage, customName: nft.customName, traits: nft.traitPicks.map((t) => ({ layerName: t.layerName, traitName: t.traitName, imageUrl: t.imageUrl })) }))).catch(console.error);
     router.push("/create");
