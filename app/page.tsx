@@ -129,7 +129,7 @@ export default function Home() {
       <section style={{ paddingTop: 20, paddingBottom: 56, borderBottom: "1px solid var(--border)" }}>
         <div style={{ display: "grid", gridTemplateColumns: "1.3fr 1fr", gap: 48, alignItems: "end" }}>
           <div>
-            <div className="eyebrow" style={{ marginBottom: 22 }}>Solana · Royalty-share launchpad</div>
+            <div style={{ marginBottom: 22 }} />
             <h1 className="h-display">
               Launch collections.<br />
               <em>Share royalties</em> with holders.
