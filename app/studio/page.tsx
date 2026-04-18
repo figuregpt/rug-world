@@ -78,6 +78,34 @@ export default function StudioPage() {
   const [oneName, setOneName] = useState("");
   const [oneImage, setOneImage] = useState<string | null>(null);
 
+  // Attribute filters: { layerId: Set<traitId> }
+  const [attrFilters, setAttrFilters] = useState<Record<string, Set<string>>>({});
+  const [showOneOfOneOnly, setShowOneOfOneOnly] = useState(false);
+  const [filterOpen, setFilterOpen] = useState(false);
+
+  const hasFilters = Object.keys(attrFilters).length > 0 || showOneOfOneOnly;
+  const toggleAttrFilter = (layerId: string, traitId: string) => {
+    setAttrFilters((prev) => {
+      const next = { ...prev };
+      const set = new Set(next[layerId] || []);
+      set.has(traitId) ? set.delete(traitId) : set.add(traitId);
+      if (set.size === 0) delete next[layerId]; else next[layerId] = set;
+      return next;
+    });
+  };
+  const clearFilters = () => { setAttrFilters({}); setShowOneOfOneOnly(false); };
+
+  const filteredGenerated = generated.filter((nft) => {
+    if (showOneOfOneOnly && !nft.isOneOfOne) return false;
+    if (showOneOfOneOnly && nft.isOneOfOne) return true;
+    for (const [layerId, traitSet] of Object.entries(attrFilters)) {
+      if (nft.isOneOfOne) return false;
+      const match = nft.traitPicks.find((t) => t.layerId === layerId);
+      if (!match || !traitSet.has(match.traitId)) return false;
+    }
+    return true;
+  });
+
   const totalTraits = layers.reduce((s, l) => s + l.traits.length, 0);
   const maxCombos = layers.length === 0 ? 0 : layers.reduce((p, l) => p * (l.traits.length || 1), 1);
   const canGenerate = layers.length > 0 && layers.every((l) => l.traits.length > 0);
@@ -296,25 +324,83 @@ export default function StudioPage() {
 
       {/* ═══ GENERATED GRID (scrollable box) ═══ */}
       {generated.length > 0 ? (
-        <div className="card" style={{ padding: 0 }}>
-          {/* Grid header */}
-          <div className="hstack" style={{ padding: "12px 16px", borderBottom: "1px solid var(--border)" }}>
-            <div className="eyebrow">{generated.length.toLocaleString()} NFTs</div>
-            {collisionCount > 0 && <span className="text-micro mono" style={{ marginLeft: 8 }}>{collisionCount.toLocaleString()} collisions rejected</span>}
-            <div className="spacer" />
-            {/* Swap */}
-            <div className="hstack" style={{ gap: 4, fontSize: 12 }}>
-              <span className="text-micro">Swap</span>
-              <input type="number" placeholder="#" value={swapA} onChange={(e) => setSwapA(e.target.value)} style={{ width: 46, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 6, padding: "3px 6px", color: "var(--text)", fontSize: 11, outline: "none" }} />
-              <span className="text-micro">↔</span>
-              <input type="number" placeholder="#" value={swapB} onChange={(e) => setSwapB(e.target.value)} style={{ width: 46, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 6, padding: "3px 6px", color: "var(--text)", fontSize: 11, outline: "none" }} />
-              <button className="chip-btn" style={{ height: 24, fontSize: 10, padding: "0 8px" }} onClick={swapTokens} disabled={!swapA || !swapB}>Go</button>
+        <div style={{ display: "flex", gap: 12 }}>
+          {/* Filter panel (collapsible sidebar) */}
+          {filterOpen && (
+            <div className="card" style={{ padding: 0, width: 220, flexShrink: 0, alignSelf: "flex-start", maxHeight: "70vh", overflowY: "auto" }}>
+              <div className="hstack" style={{ padding: "10px 14px", borderBottom: "1px solid var(--border)" }}>
+                <span style={{ fontWeight: 600, fontSize: 12 }}>Filters</span>
+                <div className="spacer" />
+                {hasFilters && <button style={{ background: "none", border: "none", color: "var(--accent)", cursor: "pointer", fontSize: 11 }} onClick={clearFilters}>Clear</button>}
+              </div>
+
+              {/* Type filter */}
+              {generated.some((g) => g.isOneOfOne) && (
+                <div style={{ padding: "10px 14px", borderBottom: "1px solid var(--border)" }}>
+                  <label className="filter-check" style={{ fontSize: 12 }}>
+                    <input type="checkbox" checked={showOneOfOneOnly} onChange={(e) => setShowOneOfOneOnly(e.target.checked)} />
+                    1/1s only
+                    <span className="count">{generated.filter((g) => g.isOneOfOne).length}</span>
+                  </label>
+                </div>
+              )}
+
+              {/* Per-layer trait filters */}
+              {layers.map((layer) => {
+                const activeCount = attrFilters[layer.id]?.size ?? 0;
+                return (
+                  <div key={layer.id} style={{ padding: "10px 14px", borderBottom: "1px solid var(--border)" }}>
+                    <div className="hstack" style={{ marginBottom: 6 }}>
+                      <span style={{ fontSize: 11, fontWeight: 600, color: "var(--text-2)" }}>{layer.name}</span>
+                      {activeCount > 0 && <span className="mono" style={{ fontSize: 10, color: "var(--accent)", marginLeft: 4 }}>{activeCount}</span>}
+                    </div>
+                    {layer.traits.map((trait) => {
+                      const active = attrFilters[layer.id]?.has(trait.id) ?? false;
+                      const count = generated.filter((g) => !g.isOneOfOne && g.traitPicks.some((t) => t.layerId === layer.id && t.traitId === trait.id)).length;
+                      return (
+                        <label key={trait.id} className="filter-check" style={{ fontSize: 12, padding: "4px 0" }}>
+                          <input type="checkbox" checked={active} onChange={() => toggleAttrFilter(layer.id, trait.id)} />
+                          <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: active ? "var(--accent)" : undefined }}>{trait.name}</span>
+                          <span className="count">{count}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                );
+              })}
             </div>
-          </div>
-          {/* Scrollable grid */}
-          <div style={{ maxHeight: "60vh", overflowY: "auto", padding: 14 }}>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 10 }}>
-              {generated.map((nft) => {
+          )}
+
+          {/* Main grid card */}
+          <div className="card" style={{ padding: 0, flex: 1 }}>
+            {/* Grid header */}
+            <div className="hstack" style={{ padding: "12px 16px", borderBottom: "1px solid var(--border)", flexWrap: "wrap", gap: 6 }}>
+              <button className={`chip-btn ${filterOpen ? "" : "ghost"}`} style={{ height: 26, fontSize: 11, padding: "0 10px" }} onClick={() => setFilterOpen(!filterOpen)}>
+                <I name="settings" size={12} />Filter{hasFilters ? ` (${Object.values(attrFilters).reduce((s, set) => s + set.size, 0) + (showOneOfOneOnly ? 1 : 0)})` : ""}
+              </button>
+              <div className="eyebrow" style={{ fontSize: 10 }}>
+                {hasFilters ? `${filteredGenerated.length} of ${generated.length}` : `${generated.length.toLocaleString()} NFTs`}
+              </div>
+              {collisionCount > 0 && <span className="text-micro mono">{collisionCount.toLocaleString()} collisions</span>}
+              <div className="spacer" />
+              <div className="hstack" style={{ gap: 4, fontSize: 12 }}>
+                <span className="text-micro">Swap</span>
+                <input type="number" placeholder="#" value={swapA} onChange={(e) => setSwapA(e.target.value)} style={{ width: 46, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 6, padding: "3px 6px", color: "var(--text)", fontSize: 11, outline: "none" }} />
+                <span className="text-micro">↔</span>
+                <input type="number" placeholder="#" value={swapB} onChange={(e) => setSwapB(e.target.value)} style={{ width: 46, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 6, padding: "3px 6px", color: "var(--text)", fontSize: 11, outline: "none" }} />
+                <button className="chip-btn" style={{ height: 24, fontSize: 10, padding: "0 8px" }} onClick={swapTokens} disabled={!swapA || !swapB}>Go</button>
+              </div>
+            </div>
+            {/* Scrollable grid */}
+            <div style={{ maxHeight: "60vh", overflowY: "auto", padding: 14 }}>
+              {filteredGenerated.length === 0 ? (
+                <div style={{ padding: 40, textAlign: "center" }}>
+                  <div className="text-muted">No NFTs match the current filters.</div>
+                  <button className="chip-btn ghost" style={{ marginTop: 10, height: 28, fontSize: 11 }} onClick={clearFilters}>Clear filters</button>
+                </div>
+              ) : (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 10 }}>
+                {filteredGenerated.map((nft) => {
                 const isSel = selectedNfts.has(nft.tokenId);
                 return (
                   <div key={nft.tokenId} onClick={() => selectMode ? setSelectedNfts((s) => { const n = new Set(s); n.has(nft.tokenId) ? n.delete(nft.tokenId) : n.add(nft.tokenId); return n; }) : setEditId(nft.tokenId)} style={{ position: "relative", cursor: "pointer", border: `1.5px solid ${isSel ? "var(--accent)" : "var(--border)"}`, borderRadius: 10, overflow: "hidden", background: "var(--bg-elev)", transition: "border-color 0.1s" }}>
@@ -331,7 +417,9 @@ export default function StudioPage() {
                 );
               })}
             </div>
+              )}
           </div>
+        </div>
         </div>
       ) : !generating && layers.length > 0 && canGenerate ? (
         <div className="card pad" style={{ padding: 40, textAlign: "center" }}>
