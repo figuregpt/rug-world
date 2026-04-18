@@ -127,7 +127,7 @@ export default function Home() {
     <div className="page-content">
       {/* HERO */}
       <section style={{ paddingTop: 20, paddingBottom: 56, borderBottom: "1px solid var(--border)" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1.3fr 1fr", gap: 48, alignItems: "end" }}>
+        <div className="rw-hero-grid" style={{ display: "grid", gridTemplateColumns: "1.3fr 1fr", gap: 48, alignItems: "end" }}>
           <div>
             <div style={{ marginBottom: 22 }} />
             <h1 className="h-display">
@@ -186,7 +186,7 @@ export default function Home() {
           <div className="spacer" />
           <Pill kind="live">Minting now</Pill>
         </div>
-        <div className="card" style={{ padding: 0, display: "grid", gridTemplateColumns: "1.1fr 1fr" }}>
+        <div className="card rw-feature-grid" style={{ padding: 0, display: "grid", gridTemplateColumns: "1.1fr 1fr" }}>
           <div style={{ padding: 36 }}>
             <RugTile variant={featured.v} glyph={featured.name[0]} />
           </div>
@@ -203,7 +203,7 @@ export default function Home() {
               {featured.supply.toLocaleString()} pieces; {featured.share}% of royalties routed to stakers.
             </p>
 
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 0, marginTop: 8, border: "1px solid var(--border)", borderRadius: 10, overflow: "hidden" }}>
+            <div className="rw-info-4" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 0, marginTop: 8, border: "1px solid var(--border)", borderRadius: 10, overflow: "hidden" }}>
               <div style={{ padding: "14px 16px", borderRight: "1px solid var(--border)" }}>
                 <div className="text-micro mono" style={{ marginBottom: 4 }}>PRICE</div>
                 <div className="serif" style={{ fontSize: 17, letterSpacing: "-0.01em" }}>◎ {featured.price}</div>
@@ -256,7 +256,7 @@ export default function Home() {
       </section>
 
       {/* ACTIVITY + UPCOMING */}
-      <section style={{ paddingBottom: 60, display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: 24 }}>
+      <section className="rw-activity-grid" style={{ paddingBottom: 60, display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: 24 }}>
         {/* Activity feed */}
         <div className="card" style={{ padding: 0 }}>
           <div className="hstack" style={{ padding: "18px 22px", borderBottom: "1px solid var(--border)" }}>
@@ -320,7 +320,7 @@ export default function Home() {
       <section style={{ paddingBottom: 60 }}>
         <div className="eyebrow">How it works</div>
         <h3 className="h2 serif" style={{ fontWeight: 400, marginTop: 6, marginBottom: 28 }}>From launch to earning.</h3>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16 }}>
+        <div className="rw-steps-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16 }}>
           {[
             { n: "01", t: "Launch", d: "Anyone can launch a collection. Build your art in Studio, set phases, and go live." },
             { n: "02", t: "Mint", d: "Buyers mint from your drops. Every collection has the royalty share system built in." },

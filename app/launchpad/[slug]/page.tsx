@@ -92,7 +92,7 @@ export default function CollectionPage({ params }: { params: Promise<{ slug: str
         <span style={{ color: "var(--text)" }}>{c.name}</span>
       </div>
 
-      <div className="rw-detail-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 40 }}>
+      <div className="rw-detail-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 40, alignItems: "start" }}>
         {/* Left: gallery */}
         <div>
           <div className="card" style={{ padding: 0, overflow: "hidden" }}>

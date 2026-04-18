@@ -142,7 +142,7 @@ export default function CreatePage() {
       </p>
 
       {/* Stepper */}
-      <div className="hstack" style={{ gap: 0, marginTop: 36, marginBottom: 28, border: "1px solid var(--border)", borderRadius: 12, overflow: "hidden" }}>
+      <div className="hstack" style={{ gap: 0, marginTop: 36, marginBottom: 28, border: "1px solid var(--border)", borderRadius: 12, overflow: "hidden", overflowX: "auto" }}>
         {steps.map((s, i) => {
           const n = i + 1;
           const done = n < step;
@@ -161,7 +161,7 @@ export default function CreatePage() {
         })}
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr", gap: 28 }}>
+      <div className="rw-create-grid" style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr", gap: 28 }}>
         <div className="card pad-lg">
           {step === 1 && <Step1 />}
           {step === 2 && <Step2 />}

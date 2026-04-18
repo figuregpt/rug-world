@@ -188,7 +188,7 @@ export default function StudioPage() {
       </div>
 
       {/* ═══ TOP: Settings row ═══ */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 12, marginBottom: 24 }}>
+      <div className="rw-settings-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 12, marginBottom: 24 }}>
         <div className="card pad" style={{ padding: 16 }}>
           <div className="text-micro mono" style={{ marginBottom: 6 }}>COLLECTION NAME</div>
           <input value={colName} onChange={(e) => setColName(e.target.value)} placeholder="e.g. Ottoman Echoes" style={{ width: "100%", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8, padding: "8px 10px", color: "var(--text)", fontSize: 14, outline: "none", fontWeight: 600 }} />
