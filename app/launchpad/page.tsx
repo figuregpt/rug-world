@@ -107,8 +107,8 @@ export default function LaunchpadPage() {
   };
 
   return (
-    <div style={{ display: "flex", height: "100%" }}>
-      {/* Filter rail */}
+    <div className="rw-launchpad-layout" style={{ display: "flex", minHeight: "100%" }}>
+      {/* Filter rail (hidden on mobile via CSS) */}
       <aside className="filter-rail">
         <div className="hstack" style={{ marginBottom: 12 }}>
           <SvgIcon name="filter" size={16} />
@@ -156,7 +156,7 @@ export default function LaunchpadPage() {
       </aside>
 
       {/* Main content */}
-      <div style={{ flex: 1, overflowY: "auto" }}>
+      <div style={{ flex: 1 }}>
         <div className="page-content" style={{ paddingTop: 28 }}>
           <div style={{ marginBottom: 8 }}>
             <div className="eyebrow">Launchpad</div>

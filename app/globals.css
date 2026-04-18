@@ -654,8 +654,9 @@ input[type="number"] { -moz-appearance: textfield; }
   .rw-info-4 { grid-template-columns: repeat(2, 1fr) !important; }
   .rw-info-4 > div { border-right: none !important; border-bottom: 1px solid var(--border); }
 
-  /* Filter rail hidden on tablet */
+  /* Filter rail hidden on tablet, launchpad layout stacks */
   .filter-rail { display: none; }
+  .rw-launchpad-layout { display: block !important; }
 
   /* Studio 3-col -> stack */
   .rw-studio-3col { grid-template-columns: 1fr !important; height: auto !important; }
@@ -731,8 +732,9 @@ input[type="number"] { -moz-appearance: textfield; }
   /* Gallery thumbs */
   .rw-gallery-thumbs { grid-template-columns: repeat(4, 1fr) !important; gap: 6px !important; }
 
-  /* Filter rail overlay */
+  /* Filter rail hidden, launchpad layout stacks */
   .filter-rail { display: none; }
+  .rw-launchpad-layout { display: block !important; }
 
   /* Table responsive */
   .rw-table thead { display: none; }
