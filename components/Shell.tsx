@@ -80,7 +80,7 @@ export default function Shell({ children }: { children: ReactNode }) {
       {/* Sidebar */}
       <aside className="sidebar">
         <Link href="/" className="brand" onClick={() => setMobileOpen(false)}>
-          <div className="brand-mark">C</div>
+          <img src="/logo.svg" alt="Campfire" style={{ width: 28, height: 28, flexShrink: 0 }} />
           {!collapsed && <span>CAMPFIRE</span>}
         </Link>
 

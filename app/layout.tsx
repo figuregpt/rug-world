@@ -6,6 +6,10 @@ import Shell from "@/components/Shell";
 export const metadata: Metadata = {
   title: "Campfire",
   description: "Permissionless NFT launchpad on Solana. Royalties flow to holders.",
+  icons: {
+    icon: "/favicon.svg",
+    apple: "/logo.svg",
+  },
 };
 
 export default function RootLayout({
