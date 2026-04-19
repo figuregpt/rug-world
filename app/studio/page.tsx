@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback, type DragEvent, type ChangeEvent } from "react";
-import { useRouter } from "next/navigation";
-import { useWallet } from "@solana/wallet-adapter-react";
+// Art mixer: generate + download. No wallet or launch flow needed.
 
 /* ── Icons ── */
 function I({ name, size = 16, style, className }: { name: string; size?: number; style?: React.CSSProperties; className?: string }) {
@@ -21,6 +20,7 @@ function I({ name, size = 16, style, className }: { name: string; size?: number;
     case "chevron-down": return <svg {...p}><path d="M6 9l6 6 6-6"/></svg>;
     case "chevron-right": return <svg {...p}><path d="M9 6l6 6-6 6"/></svg>;
     case "shuffle": return <svg {...p}><path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg>;
+    case "download": return <svg {...p}><path d="M12 4v12M6 10l6 6 6-6M4 20h16"/></svg>;
     default: return null;
   }
 }
@@ -49,8 +49,6 @@ function pickWeighted(traits: Trait[]): Trait {
 }
 
 export default function StudioPage() {
-  const wallet = useWallet();
-  const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const oneOfOneRef = useRef<HTMLInputElement>(null);
   const [uploadTargetLayer, setUploadTargetLayer] = useState<number | null>(null);
@@ -62,7 +60,6 @@ export default function StudioPage() {
   const [generated, setGenerated] = useState<GenNFT[]>([]);
   const [generating, setGenerating] = useState(false);
   const [collisionCount, setCollisionCount] = useState(0);
-  const [colName, setColName] = useState("");
   const [rarityMode, setRarityMode] = useState<"pct" | "exact">("pct");
 
   // Edit modal
@@ -161,18 +158,24 @@ export default function StudioPage() {
   const handleOneFile = (e: ChangeEvent<HTMLInputElement>) => { const f = e.target.files?.[0]; if (f) { setOneImage(URL.createObjectURL(f)); e.target.value = ""; } };
   const addOneOfOne = () => { if (!oneImage || !oneName.trim()) return; setGenerated([...generated, { tokenId: generated.length + 1, dna: "1of1-" + uid(), isOneOfOne: true, customImage: oneImage, customName: oneName.trim(), traitPicks: [] }]); setAddingOne(false); setOneName(""); setOneImage(null); };
 
-  // ── Launch ──
-  const handleLaunch = async () => {
-    if (!colName.trim() || !wallet.publicKey) return;
-    localStorage.setItem("campfire:collection", JSON.stringify({ name: colName, tagline: "", description: "", supply: generated.length, generatedCount: generated.filter((g) => !g.isOneOfOne).length, oneOfOneCount: generated.filter((g) => g.isOneOfOne).length, layerCount: layers.length, traitCount: totalTraits, draftOwner: wallet.publicKey.toString(), createdAt: new Date().toISOString() }));
-    const { idbSet, DRAFT_ASSETS_KEY } = await import("@/lib/draft-store");
-    await idbSet(DRAFT_ASSETS_KEY, generated.map((nft) => ({ tokenId: nft.tokenId, dna: nft.dna, isOneOfOne: nft.isOneOfOne || false, customImage: nft.customImage, customName: nft.customName, traits: nft.traitPicks.map((t) => ({ layerName: t.layerName, traitName: t.traitName, imageUrl: t.imageUrl })) }))).catch(console.error);
-    router.push("/create");
+  // ── Download ──
+  const handleDownload = () => {
+    if (generated.length === 0) return;
+    const data = generated.map((nft) => ({
+      tokenId: nft.tokenId,
+      dna: nft.dna,
+      isOneOfOne: nft.isOneOfOne || false,
+      customName: nft.customName,
+      traits: nft.traitPicks.map((t) => ({ layer: t.layerName, trait: t.traitName })),
+    }));
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `campfire-collection-${generated.length}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
-
-  if (!wallet.publicKey) {
-    return <div className="page-content" style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "60vh" }}><div style={{ textAlign: "center", maxWidth: 420 }}><h2 className="h1 serif" style={{ fontWeight: 400, marginBottom: 12 }}>Connect your wallet</h2><p className="text-muted" style={{ lineHeight: 1.6 }}>Connect to start building a collection.</p></div></div>;
-  }
 
   const editNft = editId !== null ? generated.find((g) => g.tokenId === editId) : null;
 
@@ -188,11 +191,7 @@ export default function StudioPage() {
       </div>
 
       {/* ═══ TOP: Settings row ═══ */}
-      <div className="rw-settings-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 12, marginBottom: 24 }}>
-        <div className="card pad" style={{ padding: 16 }}>
-          <div className="text-micro mono" style={{ marginBottom: 6 }}>COLLECTION NAME</div>
-          <input value={colName} onChange={(e) => setColName(e.target.value)} placeholder="e.g. Ottoman Echoes" style={{ width: "100%", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8, padding: "8px 10px", color: "var(--text)", fontSize: 14, outline: "none", fontWeight: 600 }} />
-        </div>
+      <div className="rw-settings-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 24 }}>
         <div className="card pad" style={{ padding: 16 }}>
           <div className="text-micro mono" style={{ marginBottom: 6 }}>COLLECTION SIZE</div>
           <input type="number" min={1} max={100000} value={supply} onChange={(e) => setSupply(Math.max(1, parseInt(e.target.value) || 1))} className="serif" style={{ width: "100%", fontSize: 24, background: "transparent", border: "none", color: "var(--text)", outline: "none", fontFamily: "Fraunces, serif" }} />
@@ -317,7 +316,7 @@ export default function StudioPage() {
             <button className="btn-ghost" onClick={() => setSelectMode(!selectMode)}>{selectMode ? "Cancel select" : "Select"}</button>
             {selectMode && selectedNfts.size > 0 && <button className="btn-ghost" style={{ color: "var(--accent)" }} onClick={() => { if (confirm(`Delete ${selectedNfts.size}?`)) deleteSelected(); }}><I name="trash" size={14} />Delete {selectedNfts.size}</button>}
             <div className="spacer" />
-            <button className="btn-primary lg" disabled={!colName.trim()} style={{ opacity: colName.trim() ? 1 : 0.4 }} onClick={handleLaunch}><I name="rocket" size={14} />Launch</button>
+            <button className="btn-primary lg" onClick={handleDownload}><I name="download" size={14} />Download JSON</button>
           </>
         )}
       </div>

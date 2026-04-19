@@ -38,7 +38,7 @@ const navSections = [
     label: "Marketplace",
     items: [
       { label: "Home", href: "/", icon: "home" },
-      { label: "Launchpad", href: "/launchpad", icon: "rocket", badge: "3" },
+      { label: "Launchpad", href: "/launchpad", icon: "rocket" },
       { label: "Stake", href: "/stake", icon: "coins" },
     ],
   },
@@ -52,7 +52,7 @@ const navSections = [
 
 export default function Shell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const [collapsed, setCollapsed] = useState(false);
+  const collapsed = false;
   const [mobileOpen, setMobileOpen] = useState(false);
   const [theme, setTheme] = useState<"dark" | "light">("dark");
 
@@ -80,7 +80,7 @@ export default function Shell({ children }: { children: ReactNode }) {
       {/* Sidebar */}
       <aside className="sidebar">
         <Link href="/" className="brand" onClick={() => setMobileOpen(false)}>
-          <img src="/logo.svg" alt="Campfire" style={{ width: 28, height: 28, flexShrink: 0 }} />
+          <img src="/campfire-editorial-identity.png" alt="Campfire" style={{ width: 28, height: 28, flexShrink: 0, borderRadius: 4 }} />
           {!collapsed && <span>CAMPFIRE</span>}
         </Link>
 
@@ -108,14 +108,14 @@ export default function Shell({ children }: { children: ReactNode }) {
         ))}
 
         <div className="sidebar-footer">
-          <button className="nav-item hide-mobile" onClick={() => setCollapsed(!collapsed)}>
-            <Icon name={collapsed ? "chevron-right" : "menu"} size={18} />
-            {!collapsed && <span>Collapse</span>}
-          </button>
-          <button className="nav-item">
+          <Link href="https://x.com/" target="_blank" rel="noopener noreferrer" className="nav-item">
+            <Icon name="arrow-right" size={18} />
+            {!collapsed && <span>Collabs</span>}
+          </Link>
+          <Link href="/docs" className="nav-item">
             <Icon name="help" size={18} />
             {!collapsed && <span>Docs</span>}
-          </button>
+          </Link>
         </div>
       </aside>
 
