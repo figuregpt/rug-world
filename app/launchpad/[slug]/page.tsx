@@ -231,24 +231,38 @@ export default function CollectionPage({ params }: { params: Promise<{ slug: str
         <div>
           <div className="eyebrow">About the project</div>
           <h3 className="h2 serif" style={{ fontWeight: 400, marginTop: 10, fontSize: 32, lineHeight: 1.15 }}>
-            A living archive of {c.name.toLowerCase()}, reimagined on-chain.
+            {c.id === "bois" ? "A DAO to bring NFTs back to life." : `About ${c.name}.`}
           </h3>
-          <div className="hstack" style={{ gap: 10, marginTop: 20, flexWrap: "wrap" }}>
-            {["GENERATIVE", "SOLANA", "ROYALTY-SHARED"].map((tag) => (
-              <div key={tag} style={{ padding: "6px 12px", border: "1px solid var(--border)", borderRadius: 999, fontSize: 11, fontFamily: "JetBrains Mono", color: "var(--text-2)", letterSpacing: "0.04em" }}>{tag}</div>
-            ))}
-          </div>
         </div>
         <div style={{ display: "grid", gap: 18, fontSize: 15, lineHeight: 1.75, color: "var(--text-2)" }}>
-          <p>
-            {c.name} is a collection of {c.supply.toLocaleString()} generative pieces that translate centuries of woven tradition into an on-chain archive. Every rug is assembled from a library of motifs, rendered as a single deterministic artwork minted directly on Solana.
-          </p>
-          <p>
-            The collection is the flagship drop from <strong style={{ color: "var(--text)" }}>{c.creator}</strong>, built in partnership with Campfire. {c.royalty}% of every secondary trade is redistributed, with <strong className="text-accent">{c.share}%</strong> flowing back to holders who stake their piece into the collection vault.
-          </p>
-          <p>
-            Staking is non-custodial and reversible at any time. A staked piece continues to live in the holder's wallet; the pool simply indexes it as an eligible receiver of pro-rata royalty flow. Rewards accrue continuously and can be claimed or compounded.
-          </p>
+          {c.id === "bois" ? (
+            <>
+              <p>
+                BOIS is a DAO built on a simple belief: NFTs should connect people again. The culture that made NFT communities special has faded. Creators took the royalties. Holders got left behind. New communities stopped forming. BOIS exists to change that.
+              </p>
+              <p>
+                <strong style={{ color: "var(--text)" }}>1,000 BOIS.</strong> That's it. No massive supply, no dilution. Each BOI is a membership into the DAO and a direct stake in the Campfire platform itself.
+              </p>
+              <p>
+                <strong style={{ color: "var(--accent)" }}>50% of all Campfire revenue goes to BOIS stakers.</strong> Every mint fee, every marketplace cut, every collection that launches on the platform generates revenue. Half of that flows directly to people who stake their BOIS. The more Campfire grows, the more BOIS holders earn.
+              </p>
+              <p>
+                This isn't a governance token with no utility. It's not a promise of future value. It's a direct revenue share from a live platform. Stake your BOI, earn your cut. Every day, from every collection.
+              </p>
+              <p>
+                BOIS holders are the backbone of Campfire. They believed in the vision before it launched. They're the ones who will shape what comes next. And they'll be rewarded for it, not with airdrops or vague roadmaps, but with real revenue from real activity.
+              </p>
+            </>
+          ) : (
+            <>
+              <p>
+                {c.name} is a collection of {c.supply.toLocaleString()} pieces on Solana, launched through Campfire. {c.royalty}% of every secondary trade is redistributed, with <strong className="text-accent">{c.share}%</strong> flowing back to holders who stake.
+              </p>
+              <p>
+                Staking is non-custodial. Your NFT stays in your wallet. Rewards accrue continuously and can be claimed at any time.
+              </p>
+            </>
+          )}
         </div>
       </div>
     </div>
