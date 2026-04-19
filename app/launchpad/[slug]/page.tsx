@@ -119,12 +119,10 @@ export default function CollectionPage({ params }: { params: Promise<{ slug: str
         {/* Right: info */}
         <div>
           <div className="hstack" style={{ gap: 10, marginBottom: 10 }}>
-            {c.logo ? (
-              <img src={c.logo} alt="" style={{ width: 28, height: 28, borderRadius: 999, objectFit: "cover", flexShrink: 0, background: "var(--accent-soft)", padding: 3 }} />
-            ) : (
+            {!c.logo && (
               <Avatar seed={c.creator} size={28} />
             )}
-            {c.verified && <I name="verified" size={14} />}
+            {!c.logo && c.verified && <I name="verified" size={14} />}
             <div className="spacer" />
             {c.status === "Live" ? <span className="pill live">Minting now</span> : c.status === "Ended" ? <span className="pill ended">Sold out</span> : <span className="pill upcoming">Coming soon</span>}
           </div>
