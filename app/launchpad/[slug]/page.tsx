@@ -36,7 +36,7 @@ function Avatar({ seed = "x", size = 22 }: { seed?: string; size?: number }) {
 
 /* ── Mock data ── */
 const MOCK: Record<string, { id: string; name: string; creator: string; status: string; supply: number; minted: number; price: number; floor: number; vol24: number; chg: number; stakers: number; royalty: number; share: number; v: number; verified: boolean; logo?: string; description?: string }> = {
-  "bois": { id: "bois", name: "BOIS", creator: "bois.sol", status: "Upcoming", supply: 5000, minted: 0, price: 0.5, floor: 0, vol24: 0, chg: 0, stakers: 0, royalty: 10, share: 100, v: 1, verified: true, logo: "/bois-logo.png", description: "The first collection on Campfire. A crew born from the streets, each with their own story. Every boi has a soul. BOIS holders earn from every trade across the entire Campfire platform. 10% royalty on every secondary sale, all of it flowing to stakers. No team cut. No platform cut on royalties. Just holders earning from holders." },
+  "bois": { id: "bois", name: "BOIS", creator: "bois.sol", status: "Upcoming", supply: 1000, minted: 0, price: 0, floor: 0, vol24: 0, chg: 0, stakers: 0, royalty: 10, share: 100, v: 1, verified: true, logo: "/bois-logo.png", description: "The first collection on Campfire. A crew born from the streets, each with their own story. Every boi has a soul. BOIS holders earn from every trade across the entire Campfire platform. 10% royalty on every secondary sale, all of it flowing to stakers. No team cut. No platform cut on royalties. Just holders earning from holders." },
   "ottoman-echoes": { id: "ottoman-echoes", name: "Ottoman Echoes", creator: "atelier.sol", status: "Live", supply: 5000, minted: 3247, price: 0.5, floor: 0.68, vol24: 142.3, chg: 12.4, stakers: 1843, royalty: 10, share: 80, v: 1, verified: true },
   "kilim-society": { id: "kilim-society", name: "Kilim Society", creator: "nomad.dao", status: "Live", supply: 3333, minted: 2901, price: 0.8, floor: 1.21, vol24: 98.7, chg: -3.1, stakers: 1207, royalty: 10, share: 75, v: 2, verified: true },
   "anatolia-gen": { id: "anatolia-gen", name: "Anatolia Genesis", creator: "loom.labs", status: "Live", supply: 2222, minted: 1456, price: 1.2, floor: 1.55, vol24: 76.2, chg: 22.0, stakers: 812, royalty: 12, share: 90, v: 3, verified: true },
@@ -224,10 +224,6 @@ export default function CollectionPage({ params }: { params: Promise<{ slug: str
               <Split color="var(--accent)" label="Stakers" pct={c.share} amount={(c.royalty * c.share / 100).toFixed(1)} last={c.share >= 100} />
               {c.share < 100 && <Split color="var(--text-2)" label="Creator" pct={100 - c.share} amount={(c.royalty * (100 - c.share) / 100).toFixed(1)} last />}
             </div>
-          </div>
-          <div style={{ marginTop: 22, padding: 14, background: "var(--surface)", borderRadius: 10, fontSize: 12.5, color: "var(--text-2)", lineHeight: 1.6 }}>
-            A trade at the current floor (◎ {c.floor || c.price}) pays ◎ {((c.floor || c.price) * c.royalty / 100).toFixed(3)} in royalty.
-            Stakers collectively earn ◎ {((c.floor || c.price) * c.royalty / 100 * c.share / 100).toFixed(3)} per sale.
           </div>
         </div>
       </div>
