@@ -43,6 +43,51 @@ export default function Home() {
         </div>
       </section>
 
+      {/* FEATURED COLLECTION - BOIS */}
+      <section style={{ padding: "56px 0" }}>
+        <div className="hstack" style={{ marginBottom: 20 }}>
+          <div className="eyebrow">Featured Collection</div>
+          <div className="spacer" />
+          <span className="pill live">First drop</span>
+        </div>
+        <div className="card rw-feature-grid" style={{ padding: 0, display: "grid", gridTemplateColumns: "1.1fr 1fr" }}>
+          <div style={{ padding: 36 }}>
+            <RugTile variant={1} glyph="B" />
+          </div>
+          <div style={{ padding: "36px 36px 36px 12px", display: "flex", flexDirection: "column", gap: 14 }}>
+            <div className="hstack" style={{ gap: 10 }}>
+              <div style={{ width: 28, height: 28, borderRadius: 999, background: "var(--accent-soft)", display: "grid", placeItems: "center", fontSize: 12, fontWeight: 700, color: "var(--accent)" }}>B</div>
+              <span style={{ fontSize: 13, color: "var(--text-2)" }}>bois.sol</span>
+              <span className="text-accent" style={{ fontSize: 14 }}>&#10003;</span>
+            </div>
+            <h2 className="h1 serif" style={{ fontWeight: 400 }}>BOIS</h2>
+            <p style={{ color: "var(--text-2)", fontSize: 14.5, lineHeight: 1.6, maxWidth: 520 }}>
+              The first collection on Campfire. A crew born from the streets, each with their own story. Every boi has a soul. BOIS holders earn from every trade across the entire Campfire platform.
+            </p>
+
+            <div className="rw-info-4" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 0, marginTop: 8, border: "1px solid var(--border)", borderRadius: 10, overflow: "hidden" }}>
+              <div style={{ padding: "14px 16px", borderRight: "1px solid var(--border)" }}>
+                <div className="text-micro mono" style={{ marginBottom: 4 }}>STATUS</div>
+                <div className="serif" style={{ fontSize: 17, color: "var(--accent)" }}>Coming soon</div>
+              </div>
+              <div style={{ padding: "14px 16px", borderRight: "1px solid var(--border)" }}>
+                <div className="text-micro mono" style={{ marginBottom: 4 }}>ROYALTY</div>
+                <div className="serif" style={{ fontSize: 17 }}>10%</div>
+              </div>
+              <div style={{ padding: "14px 16px" }}>
+                <div className="text-micro mono" style={{ marginBottom: 4 }}>STAKERS EARN</div>
+                <div className="serif" style={{ fontSize: 17, color: "var(--accent)" }}>100%</div>
+              </div>
+            </div>
+
+            <div className="hstack" style={{ marginTop: 10, gap: 10 }}>
+              <Link href="https://x.com/boisxyz" target="_blank" className="btn-primary">Follow BOIS</Link>
+              <Link href="/docs" className="btn-ghost">Learn more</Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* LAUNCHPAD - COMING SOON */}
       <section style={{ padding: "56px 0" }}>
         <div className="hstack" style={{ marginBottom: 20 }}>
