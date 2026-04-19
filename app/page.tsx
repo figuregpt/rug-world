@@ -82,7 +82,7 @@ export default function Home() {
 
             <div className="hstack" style={{ marginTop: 10, gap: 10 }}>
               <Link href="https://x.com/boisxyz" target="_blank" className="btn-primary">Follow BOIS</Link>
-              <Link href="/docs" className="btn-ghost">Learn more</Link>
+              <Link href="/launchpad/bois" className="btn-ghost">Learn more</Link>
             </div>
           </div>
         </div>

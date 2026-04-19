@@ -35,7 +35,8 @@ function Avatar({ seed = "x", size = 22 }: { seed?: string; size?: number }) {
 }
 
 /* ── Mock data ── */
-const MOCK: Record<string, { id: string; name: string; creator: string; status: string; supply: number; minted: number; price: number; floor: number; vol24: number; chg: number; stakers: number; royalty: number; share: number; v: number; verified: boolean }> = {
+const MOCK: Record<string, { id: string; name: string; creator: string; status: string; supply: number; minted: number; price: number; floor: number; vol24: number; chg: number; stakers: number; royalty: number; share: number; v: number; verified: boolean; logo?: string; description?: string }> = {
+  "bois": { id: "bois", name: "BOIS", creator: "bois.sol", status: "Upcoming", supply: 5000, minted: 0, price: 0.5, floor: 0, vol24: 0, chg: 0, stakers: 0, royalty: 10, share: 100, v: 1, verified: true, logo: "/bois-logo.png", description: "The first collection on Campfire. A crew born from the streets, each with their own story. Every boi has a soul. BOIS holders earn from every trade across the entire Campfire platform. 10% royalty on every secondary sale, all of it flowing to stakers. No team cut. No platform cut on royalties. Just holders earning from holders." },
   "ottoman-echoes": { id: "ottoman-echoes", name: "Ottoman Echoes", creator: "atelier.sol", status: "Live", supply: 5000, minted: 3247, price: 0.5, floor: 0.68, vol24: 142.3, chg: 12.4, stakers: 1843, royalty: 10, share: 80, v: 1, verified: true },
   "kilim-society": { id: "kilim-society", name: "Kilim Society", creator: "nomad.dao", status: "Live", supply: 3333, minted: 2901, price: 0.8, floor: 1.21, vol24: 98.7, chg: -3.1, stakers: 1207, royalty: 10, share: 75, v: 2, verified: true },
   "anatolia-gen": { id: "anatolia-gen", name: "Anatolia Genesis", creator: "loom.labs", status: "Live", supply: 2222, minted: 1456, price: 1.2, floor: 1.55, vol24: 76.2, chg: 22.0, stakers: 812, royalty: 12, share: 90, v: 3, verified: true },
@@ -96,21 +97,33 @@ export default function CollectionPage({ params }: { params: Promise<{ slug: str
         {/* Left: gallery */}
         <div>
           <div className="card" style={{ padding: 0, overflow: "hidden" }}>
-            <RugTile v={c.v} glyph={c.name[0]} />
-          </div>
-          <div className="rw-gallery-thumbs" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginTop: 8 }}>
-            {[2, 3, 4, 5].map((v) => (
-              <div key={v} className="card" style={{ padding: 0, overflow: "hidden", cursor: "pointer" }}>
-                <RugTile v={v} />
+            {c.logo ? (
+              <div style={{ aspectRatio: "1/1", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--bg-elev-2)" }}>
+                <img src={c.logo} alt={c.name} style={{ width: "60%", maxWidth: 240, filter: "invert(1) brightness(0.85)", opacity: 0.9 }} />
               </div>
-            ))}
+            ) : (
+              <RugTile v={c.v} glyph={c.name[0]} />
+            )}
           </div>
+          {!c.logo && (
+            <div className="rw-gallery-thumbs" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginTop: 8 }}>
+              {[2, 3, 4, 5].map((v) => (
+                <div key={v} className="card" style={{ padding: 0, overflow: "hidden", cursor: "pointer" }}>
+                  <RugTile v={v} />
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Right: info */}
         <div>
           <div className="hstack" style={{ gap: 10, marginBottom: 10 }}>
-            <Avatar seed={c.creator} size={28} />
+            {c.logo ? (
+              <img src={c.logo} alt="" style={{ width: 28, height: 28, borderRadius: 999, objectFit: "cover", flexShrink: 0, background: "var(--accent-soft)", padding: 3 }} />
+            ) : (
+              <Avatar seed={c.creator} size={28} />
+            )}
             <span style={{ fontSize: 13, color: "var(--text-2)" }}>{c.creator}</span>
             {c.verified && <I name="verified" size={14} />}
             <div className="spacer" />
@@ -118,7 +131,7 @@ export default function CollectionPage({ params }: { params: Promise<{ slug: str
           </div>
           <h1 className="h-display" style={{ fontSize: 56 }}>{c.name}</h1>
           <p style={{ marginTop: 18, color: "var(--text-2)", fontSize: 15, lineHeight: 1.65 }}>
-            {c.supply.toLocaleString()} hand-traited pieces on Solana, with {c.share}% of every secondary royalty flowing into the {c.name} staker vault.
+            {c.description || `${c.supply.toLocaleString()} hand-traited pieces on Solana, with ${c.share}% of every secondary royalty flowing into the ${c.name} staker vault.`}
           </p>
 
           {/* Info grid */}
