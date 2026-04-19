@@ -209,16 +209,62 @@ export default function CollectionPage({ params }: { params: Promise<{ slug: str
         </div>
       </div>
 
-      {/* Royalty info */}
+      {/* Royalty + Staking info */}
       <div style={{ marginTop: 48 }}>
         <div className="card pad-lg">
-          <div className="eyebrow">Royalty split</div>
-          <h3 className="h2 serif" style={{ fontWeight: 400, marginTop: 8, marginBottom: 22 }}>{c.royalty}% on every trade</h3>
-          <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 36, alignItems: "center" }}>
-            <RoyaltyDonut share={c.share} />
+          <div style={{ display: "grid", gridTemplateColumns: "auto 1fr 1fr", gap: 32, alignItems: "start" }}>
+            {/* Left: donut + split */}
             <div>
-              <Split color="var(--accent)" label="Stakers" pct={c.share} amount={(c.royalty * c.share / 100).toFixed(1)} last={c.share >= 100} />
-              {c.share < 100 && <Split color="var(--text-2)" label="Creator" pct={100 - c.share} amount={(c.royalty * (100 - c.share) / 100).toFixed(1)} last />}
+              <div className="eyebrow" style={{ marginBottom: 12 }}>Royalty split</div>
+              <RoyaltyDonut share={c.share} />
+              <div style={{ marginTop: 12 }}>
+                <Split color="var(--accent)" label="Stakers" pct={c.share} amount={(c.royalty * c.share / 100).toFixed(1)} last={c.share >= 100} />
+                {c.share < 100 && <Split color="var(--text-2)" label="Creator" pct={100 - c.share} amount={(c.royalty * (100 - c.share) / 100).toFixed(1)} last />}
+              </div>
+            </div>
+
+            {/* Center: how staking works */}
+            <div>
+              <div className="eyebrow" style={{ marginBottom: 12 }}>How staking works</div>
+              <div style={{ display: "grid", gap: 12 }}>
+                {[
+                  { icon: "01", title: "Stake your NFT", desc: "Lock your NFT into the collection vault. It stays in your wallet but becomes non-transferable while staked." },
+                  { icon: "02", title: "Royalties accumulate", desc: "Every secondary sale of this collection generates a 10% royalty. The full amount flows into the staking pool." },
+                  { icon: "03", title: "Weekly distribution", desc: "Rewards are calculated and distributed once per week. Your share is proportional to how many NFTs you've staked." },
+                ].map((s) => (
+                  <div key={s.icon} style={{ display: "flex", gap: 10, alignItems: "start" }}>
+                    <div className="mono" style={{ fontSize: 10, color: "var(--accent)", letterSpacing: "0.1em", flexShrink: 0, marginTop: 2 }}>{s.icon}</div>
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", marginBottom: 2 }}>{s.title}</div>
+                      <div style={{ fontSize: 12, color: "var(--text-2)", lineHeight: 1.5 }}>{s.desc}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Right: lock tiers + details */}
+            <div>
+              <div className="eyebrow" style={{ marginBottom: 12 }}>Lock options</div>
+              <div style={{ display: "grid", gap: 8 }}>
+                {[
+                  { period: "No lock", mult: "1.0x", desc: "Unstake anytime" },
+                  { period: "1 week", mult: "1.1x", desc: "7-day commitment" },
+                  { period: "1 month", mult: "1.3x", desc: "30-day commitment" },
+                  { period: "Lifetime", mult: "2.0x", desc: "Permanent, highest yield" },
+                ].map((l) => (
+                  <div key={l.period} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 12px", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }}>
+                    <div>
+                      <span style={{ fontWeight: 600, color: "var(--text)" }}>{l.period}</span>
+                      <span style={{ color: "var(--text-3)", marginLeft: 8 }}>{l.desc}</span>
+                    </div>
+                    <span className="mono" style={{ color: "var(--accent)", fontWeight: 700 }}>{l.mult}</span>
+                  </div>
+                ))}
+              </div>
+              <div style={{ marginTop: 12, padding: 12, background: "var(--surface)", borderRadius: 8, fontSize: 11, color: "var(--text-2)", lineHeight: 1.5 }}>
+                Longer locks earn a higher multiplier on your share of the royalty pool. Lifetime lock is permanent but gives 2x the base yield.
+              </div>
             </div>
           </div>
         </div>
