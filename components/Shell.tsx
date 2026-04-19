@@ -52,7 +52,7 @@ const navSections = [
 
 export default function Shell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const collapsed = false;
+  const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [theme, setTheme] = useState<"dark" | "light">("dark");
 
@@ -79,10 +79,20 @@ export default function Shell({ children }: { children: ReactNode }) {
 
       {/* Sidebar */}
       <aside className="sidebar">
-        <Link href="/" className="brand" onClick={() => setMobileOpen(false)}>
-          <img src="/campfire-editorial-identity.png" alt="Campfire" style={{ width: 28, height: 28, flexShrink: 0, borderRadius: 4 }} />
-          {!collapsed && <span>CAMPFIRE</span>}
-        </Link>
+        <div className="hstack" style={{ padding: "6px 8px 22px", gap: 0 }}>
+          <Link href="/" className="brand" onClick={() => setMobileOpen(false)} style={{ padding: 0, flex: 1 }}>
+            <img src="/campfire-editorial-identity.png" alt="Campfire" style={{ width: 28, height: 28, flexShrink: 0, borderRadius: 4 }} />
+            {!collapsed && <span>CAMPFIRE</span>}
+          </Link>
+          <button
+            className="hide-mobile"
+            onClick={() => setCollapsed(!collapsed)}
+            style={{ background: "none", border: "none", color: "var(--text-3)", cursor: "pointer", padding: 4, borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center" }}
+            title={collapsed ? "Expand" : "Collapse"}
+          >
+            <Icon name={collapsed ? "chevron-right" : "menu"} size={16} />
+          </button>
+        </div>
 
         {navSections.map((section) => (
           <div key={section.label}>

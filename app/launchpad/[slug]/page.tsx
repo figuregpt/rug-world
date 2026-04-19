@@ -124,10 +124,9 @@ export default function CollectionPage({ params }: { params: Promise<{ slug: str
             ) : (
               <Avatar seed={c.creator} size={28} />
             )}
-            <span style={{ fontSize: 13, color: "var(--text-2)" }}>{c.creator}</span>
             {c.verified && <I name="verified" size={14} />}
             <div className="spacer" />
-            {c.status === "Live" ? <span className="pill live">Minting now</span> : c.status === "Ended" ? <span className="pill ended">Sold out</span> : <span className="pill upcoming">Upcoming</span>}
+            {c.status === "Live" ? <span className="pill live">Minting now</span> : c.status === "Ended" ? <span className="pill ended">Sold out</span> : <span className="pill upcoming">Coming soon</span>}
           </div>
           <h1 className="h-display" style={{ fontSize: 56 }}>{c.name}</h1>
           <p style={{ marginTop: 18, color: "var(--text-2)", fontSize: 15, lineHeight: 1.65 }}>
@@ -135,64 +134,64 @@ export default function CollectionPage({ params }: { params: Promise<{ slug: str
           </p>
 
           {/* Info grid */}
-          <div className="rw-info-4" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 0, border: "1px solid var(--border)", borderRadius: 12, marginTop: 24, overflow: "hidden" }}>
-            {[
-              { label: "PRICE", value: `◎ ${c.price}` },
-              { label: "FLOOR", value: c.floor ? `◎ ${c.floor}` : "---" },
-              { label: "24H VOL", value: `◎ ${c.vol24.toFixed(1)}`, delta: `${c.chg > 0 ? "+" : ""}${c.chg}%`, deltaDown: c.chg < 0 },
-              { label: "STAKERS", value: c.stakers.toLocaleString(), last: true },
-            ].map((cell) => (
-              <div key={cell.label} style={{ padding: "18px 20px", borderRight: cell.last ? "none" : "1px solid var(--border)" }}>
-                <div className="text-micro mono">{cell.label}</div>
-                <div className="serif" style={{ fontSize: 22, marginTop: 6, letterSpacing: "-0.015em" }}>{cell.value}</div>
-                {cell.delta && <div className="mono" style={{ fontSize: 11, marginTop: 4, color: cell.deltaDown ? "var(--accent)" : "var(--success)" }}>{cell.delta}</div>}
+          <div className="rw-info-4" style={{ display: "grid", gridTemplateColumns: c.status === "Upcoming" ? "repeat(2, 1fr)" : "repeat(3, 1fr)", gap: 0, border: "1px solid var(--border)", borderRadius: 12, marginTop: 24, overflow: "hidden" }}>
+            <div style={{ padding: "18px 20px", borderRight: "1px solid var(--border)" }}>
+              <div className="text-micro mono">SUPPLY</div>
+              <div className="serif" style={{ fontSize: 22, marginTop: 6, letterSpacing: "-0.015em" }}>{c.supply.toLocaleString()}</div>
+            </div>
+            <div style={{ padding: "18px 20px", borderRight: c.status !== "Upcoming" ? "1px solid var(--border)" : "none" }}>
+              <div className="text-micro mono">ROYALTY TO STAKERS</div>
+              <div className="serif" style={{ fontSize: 22, marginTop: 6, letterSpacing: "-0.015em", color: "var(--accent)" }}>{c.share}%</div>
+            </div>
+            {c.status !== "Upcoming" && (
+              <div style={{ padding: "18px 20px" }}>
+                <div className="text-micro mono">PRICE</div>
+                <div className="serif" style={{ fontSize: 22, marginTop: 6, letterSpacing: "-0.015em" }}>◎ {c.price}</div>
               </div>
-            ))}
+            )}
           </div>
 
           {/* Mint widget */}
           <div className="card pad-lg" style={{ marginTop: 20 }}>
-            <div className="hstack" style={{ justifyContent: "space-between" }}>
-              <div className="eyebrow">{c.status === "Ended" ? "Mint closed" : "Mint"}</div>
-              <div className="mono text-micro">{c.status === "Ended" ? "Phase: Secondary" : "Phase: Public"}</div>
-            </div>
-            <div style={{ marginTop: 12, marginBottom: 10 }}>
-              <div className="progress"><span style={{ width: `${pct}%` }} /></div>
-              <div className="hstack" style={{ justifyContent: "space-between", marginTop: 8 }}>
-                <span className="mono" style={{ fontSize: 12 }}>{c.minted.toLocaleString()} / {c.supply.toLocaleString()} minted</span>
-                <span className="mono text-accent" style={{ fontSize: 12 }}>{pct.toFixed(1)}%</span>
-              </div>
-            </div>
-
-            {c.status === "Ended" ? (
-              <div style={{ marginTop: 20 }}>
-                <div style={{ padding: "22px 20px", borderRadius: 12, background: "var(--surface)", border: "1px dashed var(--border)", textAlign: "center" }}>
-                  <div className="serif" style={{ fontSize: 22, letterSpacing: "-0.01em" }}>Sold out</div>
-                  <div className="mono" style={{ fontSize: 11, color: "var(--text-3)", marginTop: 6, letterSpacing: "0.04em" }}>
-                    ALL {c.supply.toLocaleString()} PIECES MINTED
-                  </div>
-                </div>
-                <div className="hstack" style={{ gap: 10, marginTop: 12 }}>
-                  <button className="btn-primary lg" style={{ flex: 1 }}>
-                    <I name="sparkle" size={14} />Buy on secondary · floor ◎ {c.floor}
-                  </button>
+            {c.status === "Upcoming" ? (
+              <div style={{ textAlign: "center", padding: "20px 0" }}>
+                <div className="serif" style={{ fontSize: 22, letterSpacing: "-0.01em" }}>Mint coming soon</div>
+                <div className="mono" style={{ fontSize: 11, color: "var(--text-3)", marginTop: 8, letterSpacing: "0.04em" }}>
+                  {c.supply.toLocaleString()} SUPPLY · FOLLOW FOR UPDATES
                 </div>
               </div>
             ) : (
-              <div className="hstack" style={{ gap: 10, marginTop: 20 }}>
-                <div className="hstack" style={{ border: "1px solid var(--border)", borderRadius: 10, padding: 2 }}>
-                  <button className="icon-btn" style={{ border: "none", background: "transparent", width: 36, height: 36 }} onClick={() => setQty(Math.max(1, qty - 1))}>
-                    <I name="x" size={12} />
-                  </button>
-                  <div className="mono" style={{ minWidth: 42, textAlign: "center" }}>{qty}</div>
-                  <button className="icon-btn" style={{ border: "none", background: "transparent", width: 36, height: 36 }} onClick={() => setQty(Math.min(10, qty + 1))}>
-                    <I name="plus" size={12} />
-                  </button>
+              <>
+                <div className="hstack" style={{ justifyContent: "space-between" }}>
+                  <div className="eyebrow">{c.status === "Ended" ? "Mint closed" : "Mint"}</div>
+                  <div className="mono text-micro">{c.status === "Ended" ? "Phase: Secondary" : "Phase: Public"}</div>
                 </div>
-                <button className="btn-primary lg" style={{ flex: 1 }}>
-                  <I name="sparkle" size={14} />Mint {qty} for ◎ {(c.price * qty).toFixed(2)}
-                </button>
-              </div>
+                <div style={{ marginTop: 12, marginBottom: 10 }}>
+                  <div className="progress"><span style={{ width: `${pct}%` }} /></div>
+                  <div className="hstack" style={{ justifyContent: "space-between", marginTop: 8 }}>
+                    <span className="mono" style={{ fontSize: 12 }}>{c.minted.toLocaleString()} / {c.supply.toLocaleString()} minted</span>
+                    <span className="mono text-accent" style={{ fontSize: 12 }}>{pct.toFixed(1)}%</span>
+                  </div>
+                </div>
+                {c.status === "Ended" ? (
+                  <div style={{ marginTop: 20 }}>
+                    <div style={{ padding: "22px 20px", borderRadius: 12, background: "var(--surface)", border: "1px dashed var(--border)", textAlign: "center" }}>
+                      <div className="serif" style={{ fontSize: 22, letterSpacing: "-0.01em" }}>Sold out</div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="hstack" style={{ gap: 10, marginTop: 20 }}>
+                    <div className="hstack" style={{ border: "1px solid var(--border)", borderRadius: 10, padding: 2 }}>
+                      <button className="icon-btn" style={{ border: "none", background: "transparent", width: 36, height: 36 }} onClick={() => setQty(Math.max(1, qty - 1))}><I name="x" size={12} /></button>
+                      <div className="mono" style={{ minWidth: 42, textAlign: "center" }}>{qty}</div>
+                      <button className="icon-btn" style={{ border: "none", background: "transparent", width: 36, height: 36 }} onClick={() => setQty(Math.min(10, qty + 1))}><I name="plus" size={12} /></button>
+                    </div>
+                    <button className="btn-primary lg" style={{ flex: 1 }}>
+                      <I name="sparkle" size={14} />Mint {qty} for ◎ {(c.price * qty).toFixed(2)}
+                    </button>
+                  </div>
+                )}
+              </>
             )}
 
             <div style={{ marginTop: 16, padding: 14, borderRadius: 10, background: "var(--surface)", fontSize: 12, color: "var(--text-2)", lineHeight: 1.6 }}>
@@ -222,9 +221,8 @@ export default function CollectionPage({ params }: { params: Promise<{ slug: str
           <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 36, alignItems: "center" }}>
             <RoyaltyDonut share={c.share} />
             <div>
-              <Split color="var(--accent)" label="Stakers" pct={c.share} amount={(c.royalty * c.share / 100).toFixed(1)} />
-              <Split color="var(--text-2)" label="Creator" pct={100 - c.share - 2} amount={(c.royalty * (100 - c.share - 2) / 100).toFixed(1)} />
-              <Split color="var(--text-3)" label="Campfire" pct={2} amount={(c.royalty * 0.02).toFixed(2)} last />
+              <Split color="var(--accent)" label="Stakers" pct={c.share} amount={(c.royalty * c.share / 100).toFixed(1)} last={c.share >= 100} />
+              {c.share < 100 && <Split color="var(--text-2)" label="Creator" pct={100 - c.share} amount={(c.royalty * (100 - c.share) / 100).toFixed(1)} last />}
             </div>
           </div>
           <div style={{ marginTop: 22, padding: 14, background: "var(--surface)", borderRadius: 10, fontSize: 12.5, color: "var(--text-2)", lineHeight: 1.6 }}>
