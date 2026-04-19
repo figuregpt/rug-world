@@ -51,12 +51,12 @@ export default function Home() {
           <span className="pill live">First drop</span>
         </div>
         <div className="card rw-feature-grid" style={{ padding: 0, display: "grid", gridTemplateColumns: "1.1fr 1fr" }}>
-          <div style={{ padding: 36 }}>
-            <RugTile variant={1} glyph="B" />
+          <div style={{ padding: 36, display: "flex", alignItems: "center", justifyContent: "center", background: "var(--bg-elev-2)", borderRadius: "14px 0 0 14px" }}>
+            <img src="/bois-logo.png" alt="BOIS" style={{ width: "70%", maxWidth: 240, filter: "invert(1) brightness(0.85)", opacity: 0.9 }} />
           </div>
           <div style={{ padding: "36px 36px 36px 12px", display: "flex", flexDirection: "column", gap: 14 }}>
             <div className="hstack" style={{ gap: 10 }}>
-              <div style={{ width: 28, height: 28, borderRadius: 999, background: "var(--accent-soft)", display: "grid", placeItems: "center", fontSize: 12, fontWeight: 700, color: "var(--accent)" }}>B</div>
+              <img src="/bois-logo.png" alt="" style={{ width: 28, height: 28, borderRadius: 999, objectFit: "cover", flexShrink: 0, background: "var(--accent-soft)", padding: 3 }} />
               <span style={{ fontSize: 13, color: "var(--text-2)" }}>bois.sol</span>
               <span className="text-accent" style={{ fontSize: 14 }}>&#10003;</span>
             </div>
