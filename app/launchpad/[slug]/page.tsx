@@ -1,7 +1,44 @@
 "use client";
 
-import { useState, use } from "react";
+import { useState, use, useCallback } from "react";
 import Link from "next/link";
+
+function ImageGallery({ images }: { images: string[] }) {
+  const [active, setActive] = useState(0);
+  const prev = useCallback(() => setActive((a) => (a - 1 + images.length) % images.length), [images.length]);
+  const next = useCallback(() => setActive((a) => (a + 1) % images.length), [images.length]);
+
+  return (
+    <div>
+      {/* Main image with arrows */}
+      <div className="card" style={{ padding: 0, overflow: "hidden", position: "relative" }}>
+        <img src={images[active]} alt="" style={{ width: "100%", aspectRatio: "1/1", objectFit: "cover", display: "block" }} />
+        {/* Left arrow */}
+        <button onClick={prev} style={{ position: "absolute", left: 8, top: "50%", transform: "translateY(-50%)", width: 36, height: 36, borderRadius: 999, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)", border: "none", color: "#fff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>
+          &#8249;
+        </button>
+        {/* Right arrow */}
+        <button onClick={next} style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", width: 36, height: 36, borderRadius: 999, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)", border: "none", color: "#fff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>
+          &#8250;
+        </button>
+        {/* Dot indicators */}
+        <div style={{ position: "absolute", bottom: 10, left: "50%", transform: "translateX(-50%)", display: "flex", gap: 6 }}>
+          {images.map((_, i) => (
+            <button key={i} onClick={() => setActive(i)} style={{ width: 8, height: 8, borderRadius: 999, background: i === active ? "#fff" : "rgba(255,255,255,0.35)", border: "none", cursor: "pointer", padding: 0 }} />
+          ))}
+        </div>
+      </div>
+      {/* Thumbnails */}
+      <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
+        {images.map((src, i) => (
+          <button key={i} onClick={() => setActive(i)} style={{ padding: 0, border: i === active ? "2px solid var(--accent)" : "2px solid transparent", borderRadius: 10, overflow: "hidden", cursor: "pointer", flexShrink: 0, width: `calc(${100 / images.length}% - ${(images.length - 1) * 6 / images.length}px)`, background: "none" }}>
+            <img src={src} alt="" style={{ width: "100%", aspectRatio: "1/1", objectFit: "cover", display: "block", borderRadius: 8 }} />
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 /* ── Icons ── */
 function I({ name, size = 16 }: { name: string; size?: number }) {
@@ -95,32 +132,24 @@ export default function CollectionPage({ params }: { params: Promise<{ slug: str
 
       <div className="rw-detail-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 40, alignItems: "start" }}>
         {/* Left: gallery */}
-        <div>
-          {/* Main image */}
-          <div className="card" style={{ padding: 0, overflow: "hidden" }}>
-            {c.id === "bois" ? (
-              <img src="/sneak1.png" alt="BOIS sneak peek" style={{ width: "100%", aspectRatio: "1/1", objectFit: "cover", display: "block" }} />
-            ) : (
-              <RugTile v={c.v} glyph={c.name[0]} />
-            )}
-          </div>
-          {/* Sneak peek thumbnails - scrollable */}
-          {c.id === "bois" ? (
-            <div style={{ display: "flex", gap: 8, marginTop: 8, overflowX: "auto", paddingBottom: 4 }}>
-              {[2, 3, 4, 5].map((n) => (
-                <div key={n} className="card" style={{ padding: 0, overflow: "hidden", flexShrink: 0, width: "calc(25% - 6px)", minWidth: 80, cursor: "pointer" }}>
-                  <img src={`/sneak${n}.png`} alt={`Sneak ${n}`} style={{ width: "100%", aspectRatio: "1/1", objectFit: "cover", display: "block" }} />
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="rw-gallery-thumbs" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginTop: 8 }}>
-              {[2, 3, 4, 5].map((v) => (
-                <div key={v} className="card" style={{ padding: 0, overflow: "hidden", cursor: "pointer" }}>
-                  <RugTile v={v} />
-                </div>
-              ))}
-            </div>
+        <div style={{ position: "sticky", top: 0, alignSelf: "start" }}>
+          {/* Main image with arrows */}
+          {c.id === "bois" ? (() => {
+            const images = ["/sneak1.png", "/sneak2.png", "/sneak3.png", "/sneak4.png", "/sneak5.png"];
+            return <ImageGallery images={images} />;
+          })() : (
+            <>
+              <div className="card" style={{ padding: 0, overflow: "hidden" }}>
+                <RugTile v={c.v} glyph={c.name[0]} />
+              </div>
+              <div className="rw-gallery-thumbs" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginTop: 8 }}>
+                {[2, 3, 4, 5].map((v) => (
+                  <div key={v} className="card" style={{ padding: 0, overflow: "hidden", cursor: "pointer" }}>
+                    <RugTile v={v} />
+                  </div>
+                ))}
+              </div>
+            </>
           )}
         </div>
 
