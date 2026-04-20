@@ -12,7 +12,7 @@ function ImageGallery({ images }: { images: string[] }) {
     <div>
       {/* Main image with arrows */}
       <div className="card" style={{ padding: 0, overflow: "hidden", position: "relative" }}>
-        <img src={images[active]} alt="" style={{ width: "100%", aspectRatio: "1/1", objectFit: "cover", display: "block" }} />
+        <img src={images[active]} alt="" style={{ width: "100%", aspectRatio: "4/5", objectFit: "cover", display: "block" }} />
         {/* Left arrow */}
         <button onClick={prev} style={{ position: "absolute", left: 8, top: "50%", transform: "translateY(-50%)", width: 36, height: 36, borderRadius: 999, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)", border: "none", color: "#fff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>
           &#8249;
@@ -29,10 +29,10 @@ function ImageGallery({ images }: { images: string[] }) {
         </div>
       </div>
       {/* Thumbnails */}
-      <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
+      <div style={{ display: "flex", gap: 4, marginTop: 6 }}>
         {images.map((src, i) => (
-          <button key={i} onClick={() => setActive(i)} style={{ padding: 0, border: i === active ? "2px solid var(--accent)" : "2px solid transparent", borderRadius: 10, overflow: "hidden", cursor: "pointer", flexShrink: 0, width: `calc(${100 / images.length}% - ${(images.length - 1) * 6 / images.length}px)`, background: "none" }}>
-            <img src={src} alt="" style={{ width: "100%", aspectRatio: "1/1", objectFit: "cover", display: "block", borderRadius: 8 }} />
+          <button key={i} onClick={() => setActive(i)} style={{ padding: 0, border: i === active ? "2px solid var(--accent)" : "2px solid transparent", borderRadius: 8, overflow: "hidden", cursor: "pointer", flexShrink: 0, width: `calc(${100 / images.length}% - ${(images.length - 1) * 4 / images.length}px)`, background: "none" }}>
+            <img src={src} alt="" style={{ width: "100%", aspectRatio: "1/1", objectFit: "cover", display: "block", borderRadius: 6 }} />
           </button>
         ))}
       </div>
@@ -132,7 +132,7 @@ export default function CollectionPage({ params }: { params: Promise<{ slug: str
 
       <div className="rw-detail-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 40, alignItems: "start" }}>
         {/* Left: gallery */}
-        <div style={{ position: "sticky", top: 0, alignSelf: "start" }}>
+        <div style={{ alignSelf: "start" }}>
           {/* Main image with arrows */}
           {c.id === "bois" ? (() => {
             const images = ["/sneak1.png", "/sneak2.png", "/sneak3.png", "/sneak4.png", "/sneak5.png"];
