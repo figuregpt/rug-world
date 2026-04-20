@@ -118,6 +118,13 @@ export default function Shell({ children }: { children: ReactNode }) {
         ))}
 
         <div className="sidebar-footer">
+          <button
+            className="nav-item"
+            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+          >
+            <Icon name={theme === "dark" ? "sun" : "moon"} size={18} />
+            {!collapsed && <span>{theme === "dark" ? "Light mode" : "Dark mode"}</span>}
+          </button>
           <Link href="https://x.com/" target="_blank" rel="noopener noreferrer" className="nav-item">
             <Icon name="arrow-right" size={18} />
             {!collapsed && <span>Collabs</span>}
