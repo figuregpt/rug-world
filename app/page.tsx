@@ -14,10 +14,9 @@ export default function Home() {
   return (
     <div className="page-content">
       {/* HERO */}
-      <section style={{ paddingTop: 20, paddingBottom: 56, borderBottom: "1px solid var(--border)" }}>
-        <div className="rw-hero-grid" style={{ display: "grid", gridTemplateColumns: "1.3fr 1fr", gap: 48, alignItems: "end" }}>
+      <section style={{ paddingBottom: 56, borderBottom: "1px solid var(--border)" }}>
+        <div className="rw-hero-grid" style={{ display: "grid", gridTemplateColumns: "1.3fr 1fr", gap: 48, alignItems: "center" }}>
           <div>
-            <div style={{ marginBottom: 22 }} />
             <h1 className="h-display">
               Launch collections.<br />
               <em>Share royalties</em> with holders.
@@ -34,11 +33,12 @@ export default function Home() {
               </Link>
             </div>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-            <RugTile variant={1} />
-            <RugTile variant={2} glyph="C" />
-            <RugTile variant={3} glyph="F" />
-            <RugTile variant={4} />
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+            {[1, 2, 3, 4].map((n) => (
+              <div key={n} style={{ borderRadius: 12, overflow: "hidden" }}>
+                <img src={`/sneak${n}.png`} alt="" style={{ width: "100%", aspectRatio: "1/1", objectFit: "cover", display: "block" }} />
+              </div>
+            ))}
           </div>
         </div>
       </section>
