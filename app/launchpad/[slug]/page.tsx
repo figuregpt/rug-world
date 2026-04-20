@@ -240,10 +240,8 @@ export default function CollectionPage({ params }: { params: Promise<{ slug: str
 
           {/* Social links */}
           <div className="hstack" style={{ marginTop: 20, gap: 10, flexWrap: "wrap" }}>
-            <button className="chip-btn ghost"><I name="twitter" size={14} />Twitter</button>
-            <button className="chip-btn ghost"><I name="discord" size={14} />Discord</button>
-            <button className="chip-btn ghost"><I name="external" size={14} />Explorer</button>
-            <button className="chip-btn ghost"><I name="copy" size={14} />Gx4v...2p9L</button>
+            <a href="https://x.com/boisxyz" target="_blank" rel="noopener noreferrer" className="chip-btn ghost"><I name="twitter" size={14} />Twitter</a>
+            <a href="https://discord.gg/boisworld" target="_blank" rel="noopener noreferrer" className="chip-btn ghost"><I name="discord" size={14} />Discord</a>
           </div>
         </div>
       </div>
@@ -251,7 +249,7 @@ export default function CollectionPage({ params }: { params: Promise<{ slug: str
       {/* Royalty + Staking info */}
       <div style={{ marginTop: 48 }}>
         <div className="card pad-lg">
-          <div style={{ display: "grid", gridTemplateColumns: "auto 1fr 1fr", gap: 32, alignItems: "start" }}>
+          <div className="rw-staking-grid" style={{ display: "grid", gridTemplateColumns: "auto 1fr 1fr", gap: 32, alignItems: "start" }}>
             {/* Left: donut + split */}
             <div>
               <div className="eyebrow" style={{ marginBottom: 12 }}>Royalty split</div>

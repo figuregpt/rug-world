@@ -649,6 +649,7 @@ input[type="number"] { -moz-appearance: textfield; }
   .rw-settings-grid,
   .rw-create-grid,
   .rw-position-row,
+  .rw-staking-grid,
   .rw-steps-grid { grid-template-columns: 1fr !important; gap: 20px !important; }
 
   .rw-info-4 { grid-template-columns: repeat(2, 1fr) !important; }
@@ -722,6 +723,7 @@ input[type="number"] { -moz-appearance: textfield; }
   .rw-desc-grid,
   .rw-create-grid,
   .rw-position-row,
+  .rw-staking-grid,
   .rw-steps-grid { grid-template-columns: 1fr !important; gap: 16px !important; }
 
   .rw-info-4 { grid-template-columns: repeat(2, 1fr) !important; }
