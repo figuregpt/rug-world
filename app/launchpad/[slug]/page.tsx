@@ -96,22 +96,32 @@ export default function CollectionPage({ params }: { params: Promise<{ slug: str
       <div className="rw-detail-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 40, alignItems: "start" }}>
         {/* Left: gallery */}
         <div>
-          {/* Main image - placeholder until real sneak peeks are added */}
+          {/* Main image */}
           <div className="card" style={{ padding: 0, overflow: "hidden" }}>
-            <div style={{ aspectRatio: "1/1", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--bg-elev-2)" }}>
-              <span className="serif" style={{ fontSize: 48, color: "var(--text-3)", opacity: 0.3 }}>?</span>
-            </div>
+            {c.id === "bois" ? (
+              <img src="/sneak1.png" alt="BOIS sneak peek" style={{ width: "100%", aspectRatio: "1/1", objectFit: "cover", display: "block" }} />
+            ) : (
+              <RugTile v={c.v} glyph={c.name[0]} />
+            )}
           </div>
-          {/* 4 sneak peek thumbnails - scrollable row */}
-          <div style={{ display: "flex", gap: 8, marginTop: 8, overflowX: "auto", paddingBottom: 4 }}>
-            {[1, 2, 3, 4].map((n) => (
-              <div key={n} className="card" style={{ padding: 0, overflow: "hidden", flexShrink: 0, width: "calc(25% - 6px)", minWidth: 80 }}>
-                <div style={{ aspectRatio: "1/1", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--bg-elev-2)" }}>
-                  <span className="serif" style={{ fontSize: 20, color: "var(--text-3)", opacity: 0.2 }}>?</span>
+          {/* Sneak peek thumbnails - scrollable */}
+          {c.id === "bois" ? (
+            <div style={{ display: "flex", gap: 8, marginTop: 8, overflowX: "auto", paddingBottom: 4 }}>
+              {[2, 3, 4, 5].map((n) => (
+                <div key={n} className="card" style={{ padding: 0, overflow: "hidden", flexShrink: 0, width: "calc(25% - 6px)", minWidth: 80, cursor: "pointer" }}>
+                  <img src={`/sneak${n}.png`} alt={`Sneak ${n}`} style={{ width: "100%", aspectRatio: "1/1", objectFit: "cover", display: "block" }} />
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className="rw-gallery-thumbs" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginTop: 8 }}>
+              {[2, 3, 4, 5].map((v) => (
+                <div key={v} className="card" style={{ padding: 0, overflow: "hidden", cursor: "pointer" }}>
+                  <RugTile v={v} />
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Right: info */}
