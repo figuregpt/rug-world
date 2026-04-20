@@ -37,15 +37,15 @@ const navSections = [
   {
     label: "Marketplace",
     items: [
-      { label: "Home", href: "/", icon: "home" },
-      { label: "Launchpad", href: "/launchpad", icon: "rocket" },
-      { label: "Stake", href: "/stake", icon: "coins" },
+      { label: "Home", href: "/", icon: "home", badge: "" },
+      { label: "Launchpad", href: "/launchpad", icon: "rocket", badge: "" },
+      { label: "Stake", href: "/stake", icon: "coins", badge: "" },
     ],
   },
   {
     label: "Create",
     items: [
-      { label: "Studio", href: "/studio", icon: "palette" },
+      { label: "Studio", href: "/studio", icon: "palette", badge: "" },
     ],
   },
 ];
