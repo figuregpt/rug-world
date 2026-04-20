@@ -130,10 +130,11 @@ export default function Home() {
         <div className="card rw-feature-grid" style={{ padding: 0, display: "grid", gridTemplateColumns: "1.1fr 1fr" }}>
           <div style={{ padding: 36 }}>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-              <RugTile variant={1} glyph="A" />
-              <RugTile variant={3} glyph="B" />
-              <RugTile variant={5} glyph="C" />
-              <RugTile variant={2} glyph="D" />
+              {[1, 2, 3, 4].map((n) => (
+                <div key={n} style={{ borderRadius: 10, overflow: "hidden" }}>
+                  <img src={`/sneak${n}.png`} alt="" style={{ width: "100%", aspectRatio: "1/1", objectFit: "cover", display: "block" }} />
+                </div>
+              ))}
             </div>
           </div>
           <div style={{ padding: "36px 36px 36px 12px", display: "flex", flexDirection: "column", justifyContent: "center", gap: 14 }}>
