@@ -51,8 +51,8 @@ export default function Home() {
           <span className="pill live">First drop</span>
         </div>
         <div className="card rw-feature-grid" style={{ padding: 0, display: "grid", gridTemplateColumns: "1.1fr 1fr" }}>
-          <div style={{ padding: 36, display: "flex", alignItems: "center", justifyContent: "center", background: "var(--bg-elev-2)", borderRadius: "14px 0 0 14px" }}>
-            <img src="/bois-logo.png" alt="BOIS" style={{ width: "70%", maxWidth: 240, filter: "invert(1) brightness(0.85)", opacity: 0.9 }} />
+          <div style={{ overflow: "hidden", borderRadius: "14px 0 0 14px" }}>
+            <img src="/banner3.png" alt="BOIS" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
           </div>
           <div style={{ padding: "36px 36px 36px 12px", display: "flex", flexDirection: "column", gap: 14 }}>
             <h2 className="h1 serif" style={{ fontWeight: 400 }}>BOIS</h2>
