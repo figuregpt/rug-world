@@ -41,6 +41,25 @@ export default function Home() {
             ))}
           </div>
         </div>
+        {/* Stats strip */}
+        <div className="stats-row" style={{ marginTop: 40 }}>
+          <div className="stat-cell">
+            <div className="stat-label">Total value locked</div>
+            <div className="stat-value">—</div>
+          </div>
+          <div className="stat-cell">
+            <div className="stat-label">Collections launched</div>
+            <div className="stat-value">0</div>
+          </div>
+          <div className="stat-cell">
+            <div className="stat-label">Stakers earning</div>
+            <div className="stat-value">0</div>
+          </div>
+          <div className="stat-cell">
+            <div className="stat-label">Royalties paid out</div>
+            <div className="stat-value">—</div>
+          </div>
+        </div>
       </section>
 
       {/* FEATURED COLLECTION - BOIS */}
