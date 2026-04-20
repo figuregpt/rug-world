@@ -55,11 +55,6 @@ export default function Home() {
             <img src="/bois-logo.png" alt="BOIS" style={{ width: "70%", maxWidth: 240, filter: "invert(1) brightness(0.85)", opacity: 0.9 }} />
           </div>
           <div style={{ padding: "36px 36px 36px 12px", display: "flex", flexDirection: "column", gap: 14 }}>
-            <div className="hstack" style={{ gap: 10 }}>
-              <img src="/bois-logo.png" alt="" style={{ width: 28, height: 28, borderRadius: 999, objectFit: "cover", flexShrink: 0, background: "var(--accent-soft)", padding: 3 }} />
-              <span style={{ fontSize: 13, color: "var(--text-2)" }}>bois.sol</span>
-              <span className="text-accent" style={{ fontSize: 14 }}>&#10003;</span>
-            </div>
             <h2 className="h1 serif" style={{ fontWeight: 400 }}>BOIS</h2>
             <p style={{ color: "var(--text-2)", fontSize: 14.5, lineHeight: 1.6, maxWidth: 520 }}>
               The first collection on Campfire. A crew born from the streets, each with their own story. Every boi has a soul. BOIS holders earn from every trade across the entire Campfire platform.
@@ -81,8 +76,8 @@ export default function Home() {
             </div>
 
             <div className="hstack" style={{ marginTop: 10, gap: 10 }}>
-              <Link href="https://x.com/boisxyz" target="_blank" className="btn-primary">Follow BOIS</Link>
-              <Link href="/launchpad/bois" className="btn-ghost">Learn more</Link>
+              <Link href="/launchpad/bois" className="btn-primary">Mint BOIS</Link>
+              <Link href="https://x.com/boisxyz" target="_blank" className="btn-ghost">Follow BOIS</Link>
             </div>
           </div>
         </div>
