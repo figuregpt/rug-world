@@ -12,7 +12,7 @@ function ImageGallery({ images }: { images: string[] }) {
     <div>
       {/* Main image with arrows */}
       <div className="card" style={{ padding: 0, overflow: "hidden", position: "relative" }}>
-        <img src={images[active]} alt="" style={{ width: "100%", aspectRatio: "4/5", objectFit: "cover", display: "block" }} />
+        <img src={images[active]} alt="" style={{ width: "100%", aspectRatio: "1/1", objectFit: "cover", display: "block" }} />
         {/* Left arrow */}
         <button onClick={prev} style={{ position: "absolute", left: 8, top: "50%", transform: "translateY(-50%)", width: 36, height: 36, borderRadius: 999, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)", border: "none", color: "#fff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>
           &#8249;
@@ -130,7 +130,7 @@ export default function CollectionPage({ params }: { params: Promise<{ slug: str
         <span style={{ color: "var(--text)" }}>{c.name}</span>
       </div>
 
-      <div className="rw-detail-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 40, alignItems: "start" }}>
+      <div className="rw-detail-grid" style={{ display: "grid", gridTemplateColumns: "2fr 3fr", gap: 32, alignItems: "start" }}>
         {/* Left: gallery */}
         <div style={{ alignSelf: "start" }}>
           {/* Main image with arrows */}
