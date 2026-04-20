@@ -327,7 +327,7 @@ export default function CollectionPage({ params }: { params: Promise<{ slug: str
                 <strong style={{ color: "var(--text)" }}>1,000 BOIS.</strong> That's it. No massive supply, no dilution. Each BOI is a membership into the DAO and a direct stake in the Campfire platform itself.
               </p>
               <p>
-                <strong style={{ color: "var(--accent)" }}>50% of all Campfire revenue goes to BOIS stakers.</strong> Every mint fee, every marketplace cut, every collection that launches on the platform generates revenue. Half of that flows directly to people who stake their BOIS. The more Campfire grows, the more BOIS holders earn.
+                <strong style={{ color: "var(--accent)" }}>50% of all Campfire revenue goes to BOIS stakers.</strong> Every launch fee, every platform cut from mints, every collection that drops on the platform generates revenue. Half of that flows directly to people who stake their BOIS. The more Campfire grows, the more BOIS holders earn.
               </p>
               <p>
                 This isn't a governance token with no utility. It's not a promise of future value. It's a direct revenue share from a live platform. Stake your BOI, earn your cut. Every day, from every collection.
