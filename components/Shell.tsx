@@ -81,7 +81,7 @@ export default function Shell({ children }: { children: ReactNode }) {
       <aside className="sidebar">
         <div className="hstack" style={{ padding: "6px 8px 22px", gap: 0 }}>
           <Link href="/" className="brand" onClick={() => setMobileOpen(false)} style={{ padding: 0, flex: 1 }}>
-            <img src="/campfire-editorial-identity.png" alt="Campfire" style={{ width: 28, height: 28, flexShrink: 0, borderRadius: 4 }} />
+            <img src="/campfire-editorial-identity.png" alt="Campfire" style={{ width: 36, height: 36, flexShrink: 0, borderRadius: 6 }} />
             {!collapsed && <span>CAMPFIRE</span>}
           </Link>
           <button
