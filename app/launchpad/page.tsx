@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import LaunchpadTutorial from "@/components/LaunchpadTutorial";
 
 export default function LaunchpadPage() {
   return (
     <div className="page-content">
-      <div style={{ marginBottom: 8 }}>
+      <div style={{ marginBottom: 24 }}>
         <div className="eyebrow">Launchpad</div>
         <h1 className="h1 serif" style={{ fontWeight: 400, marginTop: 8, fontSize: 44 }}>Drops</h1>
         <p className="text-muted" style={{ marginTop: 10, maxWidth: 560, lineHeight: 1.6, fontSize: 15 }}>
@@ -13,8 +14,10 @@ export default function LaunchpadPage() {
         </p>
       </div>
 
+      <LaunchpadTutorial />
+
       {/* BOIS */}
-      <Link href="/launchpad/bois" className="card" style={{ padding: 0, display: "grid", gridTemplateColumns: "auto 1fr", gap: 0, textDecoration: "none", color: "inherit", marginTop: 28, cursor: "pointer" }}>
+      <Link href="/launchpad/bois" className="card" style={{ padding: 0, display: "grid", gridTemplateColumns: "auto 1fr", gap: 0, textDecoration: "none", color: "inherit", cursor: "pointer" }}>
         <div style={{ width: 140, height: 140, overflow: "hidden", borderRadius: "14px 0 0 14px" }}>
           <img src="/sneak1.png" alt="BOIS" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
         </div>
